@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background:#121416; color:white; }
+        .card { background:#212529; border:1px solid #495057; }
+        .form-control { background-color: #2b3035 !important; color: white !important; border: 1px solid #495057; }
+    </style>
+    <title>Portail Employé</title>
+</head>
+<body class="container py-5">
+    <div class="d-flex justify-content-between mb-5">
+        <h2 style="color: #0dcaf0;">💼 Espace Employé</h2>
+        <a href="/" class="btn btn-outline-light">Accueil</a>
+    </div>
+
+    <div class="card p-4 mb-5">
+        <h4 class="mb-4">Check-ins (Réservation → Location)</h4>
+        <table class="table table-dark table-hover">
+            <thead><tr><th>ID</th><th>Client</th><th>Action</th></tr></thead>
+            <tbody>
+                <% reservations.forEach(r => { %>
+                    <tr>
+                        <td><%= r.id %></td>
+                        <td><%= r.client %></td>
+                        <td><button class="btn btn-info btn-sm fw-bold">Check-in</button></td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card p-4">
+        <h4 class="mb-4">Location Directe</h4>
+        <form class="row g-3">
+            <div class="col-md-4"><input type="text" class="form-control" placeholder="NAS Client"></div>
+            <div class="col-md-4"><input type="number" class="form-control" placeholder="ID Chambre"></div>
+            <div class="col-md-4"><button class="btn btn-success w-100 fw-bold">Louer</button></div>
+        </form>
+    </div>
+</body>
+</html>

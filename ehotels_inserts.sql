@@ -34,13 +34,29 @@ SELECT
 FROM HOTEL h
 CROSS JOIN (SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) AS nums;
 
--- Employees (Required: Every hotel must have a manager) 
+-- Managers: one manager per hotel chain for the employee access demo
 INSERT INTO EMPLOYEE (hotel_id, full_name, address, ssn_sin, role)
-SELECT hotel_id, CONCAT('Manager ', hotel_id), 'Address St', CONCAT('SIN-', hotel_id), 'Manager'
-FROM HOTEL;
+SELECT MIN(h.hotel_id), CONCAT('Manager ', hc.name), 'Address St', CONCAT('1', LPAD(hc.chain_id, 8, '0')), 'Manager'
+FROM HOTEL_CHAIN hc
+JOIN HOTEL h ON h.chain_id = hc.chain_id
+GROUP BY hc.chain_id, hc.name;
+
+-- Test non-manager employee for each hotel chain
+INSERT INTO EMPLOYEE (hotel_id, full_name, address, ssn_sin, role)
+SELECT MIN(h.hotel_id), CONCAT('Employee ', hc.name), 'Address St', CONCAT('2', LPAD(hc.chain_id, 8, '0')), 'Receptionist'
+FROM HOTEL_CHAIN hc
+JOIN HOTEL h ON h.chain_id = hc.chain_id
+GROUP BY hc.chain_id, hc.name;
 
 -- Link Managers back to Hotels
-UPDATE HOTEL h SET manager_employee_id = (SELECT employee_id FROM EMPLOYEE e WHERE e.hotel_id = h.hotel_id LIMIT 1);
+UPDATE HOTEL h
+JOIN (
+    SELECT MIN(hotel_id) AS hotel_id
+    FROM HOTEL
+    GROUP BY chain_id
+) representative_hotels ON representative_hotels.hotel_id = h.hotel_id
+JOIN EMPLOYEE e ON e.hotel_id = h.hotel_id AND e.role = 'Manager'
+SET h.manager_employee_id = e.employee_id;
 
 -- Clients [cite: 30]
 INSERT INTO CLIENT (full_name, address, ssn_sin, registration_date) VALUES

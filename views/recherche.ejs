@@ -80,38 +80,27 @@
   </style>
 </head>
 <body class="antialiased overflow-x-hidden">
-  <aside class="fixed left-0 top-0 h-full flex flex-col w-64 border-r border-white/5 bg-[#0e0e0e] z-50">
-    <div class="p-8">
-      <div class="flex items-center gap-3 mb-10">
-        <div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center">
-          <span class="material-symbols-outlined text-primary text-lg">inventory_2</span>
-        </div>
-        <div>
-          <h1 class="text-xl font-bold text-teal-400 tracking-tighter">e-Hotels</h1>
-          <p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-medium">Database Repository</p>
-        </div>
+  <aside class="fixed left-0 top-0 h-screen flex flex-col py-6 px-4 gap-8 bg-[#0e0e0e] border-r border-white/5 w-64 z-50">
+    <div class="flex items-center gap-3 px-2">
+      <div class="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center">
+        <span class="material-symbols-outlined text-on-primary text-sm">inventory_2</span>
       </div>
-      <nav class="space-y-1">
-        <a class="flex items-center gap-4 px-4 py-3 text-teal-400 font-semibold border-r-2 border-teal-400 bg-white/5" href="/">
-          <span class="material-symbols-outlined">home</span>
-          <span class="text-sm">Accueil</span>
-        </a>
-        <a class="flex items-center gap-4 px-4 py-3 text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" href="/employe">
-          <span class="material-symbols-outlined">badge</span>
-          <span class="text-sm">Employe</span>
-        </a>
-        <a class="flex items-center gap-4 px-4 py-3 text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" href="/admin">
-          <span class="material-symbols-outlined">admin_panel_settings</span>
-          <span class="text-sm">Admin</span>
-        </a>
-        <a class="flex items-center gap-4 px-4 py-3 text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" href="/stats">
-          <span class="material-symbols-outlined">analytics</span>
-          <span class="text-sm">Stats</span>
-        </a>
-      </nav>
+      <div class="flex flex-col">
+        <span class="text-teal-400 font-black tracking-tight leading-none">e-Hotels</span>
+        <span class="text-[10px] text-on-surface-variant font-medium">CSI2532 Project</span>
+      </div>
     </div>
+    <nav class="flex flex-col gap-2 flex-grow">
+      <a class="flex items-center gap-3 bg-teal-400/10 text-teal-400 rounded-lg px-4 py-2 border-l-4 border-teal-400 font-medium text-sm" href="/">
+        <span class="material-symbols-outlined text-lg">dashboard</span>
+        <span>Accueil</span>
+      </a>
+      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/employe">
+        <span class="material-symbols-outlined text-lg">badge</span>
+        <span>Employe</span>
+      </a>
+    </nav>
   </aside>
-
   <div class="ml-64 min-h-screen flex flex-col">
     <header class="sticky top-0 z-40 px-6 lg:px-8 py-4 bg-[#121413]/80 backdrop-blur-md border-b border-white/5">
       <form id="live-search-form" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-9 gap-4 w-full">

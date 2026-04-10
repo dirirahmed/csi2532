@@ -5,7 +5,7 @@
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>e-Hotels Database - Employe</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <link href="/styles/ui.css" rel="stylesheet"/>
   <script>
@@ -18,7 +18,6 @@
             surface: '#0e0e0e',
             'surface-container-low': '#121413',
             'surface-container': '#181a19',
-            'surface-container-high': '#1e201f',
             'surface-container-highest': '#242625',
             primary: '#3cddc7',
             'primary-container': '#005047',
@@ -32,7 +31,15 @@
     };
   </script>
 </head>
-<body class="bg-background text-on-surface min-h-screen flex">
+<body class="bg-background text-on-surface h-screen overflow-hidden flex">
+  <%
+    const viewMode = typeof mode !== 'undefined' ? mode : 'select';
+    const currentSession = typeof session !== 'undefined' ? session : null;
+    const hotelOptions = typeof hotels !== 'undefined' ? hotels : [];
+    const employeeOptions = typeof employees !== 'undefined' ? employees : [];
+    const reservationRows = typeof reservations !== 'undefined' ? reservations : [];
+    const roomOptions = typeof rooms !== 'undefined' ? rooms : [];
+  %>
   <aside class="hidden md:flex sticky top-0 flex-col h-screen py-6 px-4 gap-8 bg-[#0e0e0e] border-r border-white/5 w-64 shrink-0 self-start">
     <div class="flex items-center gap-3 px-2">
       <div class="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center">
@@ -52,101 +59,210 @@
         <span class="material-symbols-outlined text-lg">badge</span>
         <span>Employe</span>
       </a>
-      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/admin">
-        <span class="material-symbols-outlined text-lg">admin_panel_settings</span>
-        <span>Admin</span>
-      </a>
-      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/stats">
-        <span class="material-symbols-outlined text-lg">analytics</span>
-        <span>Stats</span>
-      </a>
     </nav>
   </aside>
 
-  <main class="flex-grow flex flex-col min-w-0 overflow-y-auto">
+  <main class="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
     <header class="bg-[#121413]/80 backdrop-blur-lg flex items-center w-full px-8 h-16 sticky top-0 z-50 border-b border-white/5">
       <div class="flex flex-col">
         <span class="text-teal-400 font-bold tracking-tighter uppercase text-sm">e-Hotels</span>
-        <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Employee Console</span>
+        <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Employee Access</span>
       </div>
     </header>
 
-    <div class="p-8 max-w-7xl mx-auto w-full space-y-10">
-      <section class="space-y-4">
-        <div>
-          <h2 class="text-2xl font-bold tracking-tight">Reservations a convertir</h2>
-          <p class="text-on-surface-variant text-sm">Check-in d'une reservation vers une location.</p>
+    <% if (viewMode === 'select') { %>
+      <section class="p-8 lg:p-10 max-w-6xl mx-auto w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col">
+        <div class="mb-6 shrink-0">
+          <h2 class="text-4xl font-extrabold tracking-tight text-on-surface mb-2">Acces Employe</h2>
+          <p class="text-on-surface-variant max-w-2xl">Choisissez une des 5 chaines hotelieres puis un employe existant. La liste inclut les employes de cette marque, peu importe la ville. Un gestionnaire ouvre l'interface admin.</p>
         </div>
 
-        <div class="bg-surface-container-low rounded-xl overflow-hidden border border-white/5">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-surface-container">
-                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Reservation</th>
-                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Client</th>
-                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">NAS</th>
-                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Chambre</th>
-                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Arrivee</th>
-                  <th class="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Action</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-white/5">
-                <% if (!reservations.length) { %>
-                  <tr>
-                    <td class="px-6 py-6 text-sm text-on-surface-variant" colspan="6">Aucune reservation en attente.</td>
-                  </tr>
-                <% } %>
-                <% reservations.forEach(r => { %>
-                  <tr class="hover:bg-surface-container transition-colors">
-                    <td class="px-6 py-5 font-mono text-sm text-primary-dim">#<%= r.id %></td>
-                    <td class="px-6 py-5 text-sm"><%= r.client %></td>
-                    <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.nas %></td>
-                    <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.room_id %></td>
-                    <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.start_date %></td>
-                    <td class="px-6 py-5 text-right">
-                      <form action="/checkin/<%= r.id %>" method="POST">
-                        <button class="signature-gradient text-on-primary px-4 py-2 rounded text-xs font-bold uppercase tracking-tighter hover:opacity-90 transition-all active:scale-95" type="submit">Check-in</button>
-                      </form>
-                    </td>
-                  </tr>
+        <form action="/employe/console" method="GET" class="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 flex-1" id="employee-access-form">
+          <div class="lg:col-span-7 min-h-0 flex flex-col gap-6">
+            <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 min-h-0 flex flex-col">
+              <div class="flex items-center gap-4 mb-5">
+                <div class="w-8 h-8 rounded-full border border-primary flex items-center justify-center text-primary text-xs font-bold">01</div>
+                <h3 class="text-lg font-semibold text-on-surface">Selection de la chaine</h3>
+              </div>
+              <input type="hidden" id="hotel_id" name="hotel_id" required/>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto pr-1" id="hotel-list">
+                <% hotelOptions.forEach(hotel => { %>
+                  <button class="hotel-card text-left bg-surface-container-highest border border-outline-variant/20 rounded-lg p-4 hover:border-primary/50 transition-all" data-hotel-id="<%= hotel.hotel_id %>" type="button">
+                    <span class="block text-sm font-bold text-on-surface"><%= hotel.name %></span>
+                    <span class="block text-xs text-on-surface-variant mt-1">Marque principale</span>
+                  </button>
                 <% }) %>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="max-w-2xl">
-        <div class="bg-surface-container-low rounded-xl p-8 border border-white/5 space-y-6">
-          <div>
-            <h2 class="text-2xl font-bold tracking-tight">Location directe</h2>
-            <p class="text-on-surface-variant text-sm mt-1">Creer une location sans reservation.</p>
-          </div>
-
-          <form action="/louer-direct" method="POST" class="space-y-5">
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Client NAS</label>
-              <input class="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface focus:ring-1 focus:ring-primary transition-all placeholder:text-on-surface-variant/50" inputmode="numeric" maxlength="9" minlength="9" name="nas" pattern="[0-9]{9}" placeholder="000000000" required type="text"/>
+              </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Chambre</label>
-              <select class="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface focus:ring-1 focus:ring-primary transition-all" name="room_id" required>
-                <option value="">Choisir une chambre</option>
-                <% rooms.forEach(room => { %>
-                  <option value="<%= room.room_id %>">#<%= room.room_id %> - <%= room.hotel_name %> - Chambre <%= room.room_number %></option>
+            <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 min-h-0 flex flex-col flex-1">
+              <div class="flex items-center gap-4 mb-5">
+                <div class="w-8 h-8 rounded-full border border-primary flex items-center justify-center text-primary text-xs font-bold">02</div>
+                <h3 class="text-lg font-semibold text-on-surface">Selection du profil employe</h3>
+              </div>
+              <input type="hidden" id="employee_id" name="employee_id" required/>
+              <div class="space-y-3 max-h-[340px] overflow-y-auto pr-1 min-h-0" id="employee-list">
+                <div class="text-sm text-on-surface-variant">Selectionnez d'abord une chaine hoteliere.</div>
+                <% employeeOptions.forEach(employee => { %>
+                  <button class="employee-card hidden w-full text-left flex items-center justify-between p-4 rounded-lg bg-surface-container-highest/50 border border-outline-variant/10 hover:border-primary/40 cursor-pointer transition-all" data-employee-id="<%= employee.employee_id %>" data-hotel-id="<%= employee.hotel_id %>" type="button">
+                    <span>
+                      <span class="block font-bold text-on-surface"><%= employee.full_name %></span>
+                      <span class="block text-xs <%= employee.role === 'Manager' ? 'text-primary' : 'text-on-surface-variant' %> font-medium tracking-wide"><%= employee.role %></span>
+                    </span>
+                    <% if (employee.role === 'Manager') { %>
+                      <span class="material-symbols-outlined text-primary text-lg">admin_panel_settings</span>
+                    <% } else { %>
+                      <span class="material-symbols-outlined text-on-surface-variant text-lg">badge</span>
+                    <% } %>
+                  </button>
                 <% }) %>
-              </select>
+              </div>
             </div>
 
-            <button class="w-full signature-gradient text-on-primary py-4 rounded-lg font-bold uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all" type="submit">
-              Louer
+            <button class="w-full signature-gradient text-on-primary py-5 rounded-lg font-bold text-lg tracking-tight active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed" disabled id="connect-button" type="submit">
+              Se connecter au systeme
             </button>
-          </form>
-        </div>
+          </div>
+
+          <div class="lg:col-span-5 min-h-0">
+            <div class="sticky top-24 bg-surface-container-low rounded-xl p-8 border border-outline-variant/10 space-y-6">
+              <h4 class="text-primary font-bold text-sm uppercase tracking-widest">Regles d'acces</h4>
+              <p class="text-sm text-on-surface-variant leading-relaxed">L'acces est limite a la chaine hoteliere selectionnee. Il y a un seul gestionnaire visible par marque, toujours place en haut de la liste.</p>
+              <p class="text-sm text-on-surface-variant leading-relaxed">Si le profil choisi a le role <strong class="text-on-surface">Manager</strong>, vous serez dirige vers l'interface admin avec un bouton Retour.</p>
+            </div>
+          </div>
+        </form>
       </section>
-    </div>
+    <% } else { %>
+      <div class="p-8 max-w-7xl mx-auto w-full space-y-10">
+        <div class="bg-surface-container-low border border-white/5 rounded-xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold tracking-tight"><%= currentSession.full_name %></h2>
+            <p class="text-on-surface-variant text-sm"><%= currentSession.role %> - <%= currentSession.hotel_name %></p>
+          </div>
+          <a class="text-primary text-sm font-bold hover:text-white" href="/employe">Changer d'employe</a>
+        </div>
+
+        <section class="space-y-4">
+          <div>
+            <h2 class="text-2xl font-bold tracking-tight">Reservations a convertir</h2>
+            <p class="text-on-surface-variant text-sm">Reservations de la chaine selectionnee seulement.</p>
+          </div>
+
+          <div class="bg-surface-container-low rounded-xl overflow-hidden border border-white/5">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-surface-container">
+                    <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Reservation</th>
+                    <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Client</th>
+                    <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">NAS</th>
+                    <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Chambre</th>
+                    <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Arrivee</th>
+                    <th class="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Action</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  <% if (!reservationRows.length) { %>
+                    <tr>
+                      <td class="px-6 py-6 text-sm text-on-surface-variant" colspan="6">Aucune reservation en attente pour cette chaine.</td>
+                    </tr>
+                  <% } %>
+                  <% reservationRows.forEach(r => { %>
+                    <tr class="hover:bg-surface-container transition-colors">
+                      <td class="px-6 py-5 font-mono text-sm text-primary">#<%= r.id %></td>
+                      <td class="px-6 py-5 text-sm"><%= r.client %></td>
+                      <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.nas %></td>
+                      <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.room_id %></td>
+                      <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.start_date %></td>
+                      <td class="px-6 py-5 text-right">
+                        <form action="/checkin/<%= r.id %>" method="POST">
+                          <input type="hidden" name="employee_id" value="<%= currentSession.employee_id %>"/>
+                          <input type="hidden" name="hotel_id" value="<%= currentSession.hotel_id %>"/>
+                          <button class="signature-gradient text-on-primary px-4 py-2 rounded text-xs font-bold uppercase tracking-tighter hover:opacity-90 transition-all active:scale-95" type="submit">Check-in</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="max-w-2xl">
+          <div class="bg-surface-container-low rounded-xl p-8 border border-white/5 space-y-6">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight">Location directe</h2>
+              <p class="text-on-surface-variant text-sm mt-1">Creer une location sans reservation dans la chaine de l'employe.</p>
+            </div>
+
+            <form action="/louer-direct" method="POST" class="space-y-5">
+              <input type="hidden" name="employee_id" value="<%= currentSession.employee_id %>"/>
+              <input type="hidden" name="hotel_id" value="<%= currentSession.hotel_id %>"/>
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Client NAS</label>
+                <input class="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface focus:ring-1 focus:ring-primary transition-all placeholder:text-on-surface-variant/50" inputmode="numeric" maxlength="9" minlength="9" name="nas" pattern="[0-9]{9}" placeholder="000000000" required type="text"/>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Chambre</label>
+                <select class="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface focus:ring-1 focus:ring-primary transition-all" name="room_id" required>
+                  <option value="">Choisir une chambre</option>
+                  <% roomOptions.forEach(room => { %>
+                    <option value="<%= room.room_id %>">#<%= room.room_id %> - Chambre <%= room.room_number %></option>
+                  <% }) %>
+                </select>
+              </div>
+
+              <button class="w-full signature-gradient text-on-primary py-4 rounded-lg font-bold uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all" type="submit">
+                Louer
+              </button>
+            </form>
+          </div>
+        </section>
+      </div>
+    <% } %>
   </main>
+
+  <script>
+    const hotelInput = document.getElementById('hotel_id');
+    const employeeInput = document.getElementById('employee_id');
+    const connectButton = document.getElementById('connect-button');
+    const hotelCards = Array.from(document.querySelectorAll('.hotel-card'));
+    const employeeCards = Array.from(document.querySelectorAll('.employee-card'));
+    const employeeList = document.getElementById('employee-list');
+
+    hotelCards.forEach((card) => {
+      card.addEventListener('click', () => {
+        hotelInput.value = card.dataset.hotelId;
+        employeeInput.value = '';
+        connectButton.disabled = true;
+
+        hotelCards.forEach(item => item.classList.remove('border-primary', 'bg-teal-400/10'));
+        card.classList.add('border-primary', 'bg-teal-400/10');
+
+        let shown = 0;
+        employeeCards.forEach((employeeCard) => {
+          const isMatch = employeeCard.dataset.hotelId === hotelInput.value;
+          employeeCard.classList.toggle('hidden', !isMatch);
+          employeeCard.classList.remove('border-primary', 'bg-teal-400/10');
+          if (isMatch) shown += 1;
+        });
+
+        const placeholder = employeeList.querySelector('.text-sm');
+        if (placeholder) placeholder.classList.toggle('hidden', shown > 0);
+      });
+    });
+
+    employeeCards.forEach((card) => {
+      card.addEventListener('click', () => {
+        employeeInput.value = card.dataset.employeeId;
+        connectButton.disabled = false;
+        employeeCards.forEach(item => item.classList.remove('border-primary', 'bg-teal-400/10'));
+        card.classList.add('border-primary', 'bg-teal-400/10');
+      });
+    });
+  </script>
 </body>
 </html>

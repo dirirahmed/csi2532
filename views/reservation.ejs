@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #121416;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        
+        .success-card {
+            background: #212529;
+            border: 2px solid #0dcaf0;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+        }
+    </style>
+    <title>Succès</title>
+</head>
+
+<body>
+    <div class="success-card shadow-lg">
+        <h1 style="color: #0dcaf0;">✔️ Réservation Confirmée</h1>
+        <p class="lead mt-3">La chambre a été bloquée avec succès.</p>
+        <p class="text-white-50 small">ID de Transaction: #
+            <%= Math.floor(Math.random() * 900000) %>
+        </p>
+        <a href="/" class="btn btn-outline-info mt-4">Retour à l'Accueil</a>
+    </div>
+</body>
+
+</html>

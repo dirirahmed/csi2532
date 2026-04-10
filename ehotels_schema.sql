@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS ehotels;
 CREATE DATABASE IF NOT EXISTS ehotels;
 USE ehotels;
 
@@ -5,7 +6,7 @@ CREATE TABLE HOTEL_CHAIN (
     chain_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     head_office_address VARCHAR(255) NOT NULL,
-    num_hotels INT NOT NULL CHECK (num_hotels >= 0),
+    num_hotels INT NOT NULL DEFAULT 0 CHECK (num_hotels >= 0),
     contact_email VARCHAR(100) NOT NULL,
     contact_phone VARCHAR(20) NOT NULL
 );
@@ -15,7 +16,7 @@ CREATE TABLE CLIENT (
     full_name VARCHAR(100) NOT NULL,
     address VARCHAR(255) NOT NULL,
     ssn_sin VARCHAR(20) NOT NULL UNIQUE,
-    registration_date DATE NOT NULL CHECK (registration_date <= CURRENT_DATE)
+    registration_date DATE NOT NULL 
 );
 
 CREATE TABLE HOTEL (
@@ -28,11 +29,11 @@ CREATE TABLE HOTEL (
     province_state VARCHAR(100) NOT NULL,
     country VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL,
-    num_rooms INT NOT NULL CHECK (num_rooms >= 0),
+    num_rooms INT NOT NULL DEFAULT 0 CHECK (num_rooms >= 0),
     contact_email VARCHAR(100) NOT NULL,
     contact_phone VARCHAR(20) NOT NULL,
     manager_employee_id INT UNIQUE,
-    FOREIGN KEY (chain_id) REFERENCES HOTEL_CHAIN(chain_id)
+    FOREIGN KEY (chain_id) REFERENCES HOTEL_CHAIN(chain_id) ON DELETE CASCADE
 );
 
 CREATE TABLE EMPLOYEE (
@@ -42,12 +43,10 @@ CREATE TABLE EMPLOYEE (
     address VARCHAR(255) NOT NULL,
     ssn_sin VARCHAR(20) NOT NULL UNIQUE,
     role VARCHAR(50) NOT NULL CHECK (role IN ('Manager', 'Receptionist', 'Housekeeping', 'Admin', 'Other')),
-    FOREIGN KEY (hotel_id) REFERENCES HOTEL(hotel_id)
+    FOREIGN KEY (hotel_id) REFERENCES HOTEL(hotel_id) ON DELETE CASCADE
 );
 
-ALTER TABLE HOTEL
-ADD CONSTRAINT fk_manager_employee
-FOREIGN KEY (manager_employee_id) REFERENCES EMPLOYEE(employee_id);
+ALTER TABLE HOTEL ADD CONSTRAINT fk_manager_employee FOREIGN KEY (manager_employee_id) REFERENCES EMPLOYEE(employee_id) ON DELETE SET NULL;
 
 CREATE TABLE ROOM (
     room_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -61,7 +60,7 @@ CREATE TABLE ROOM (
     damage_status VARCHAR(255),
     area DECIMAL(8,2) NOT NULL CHECK (area > 0),
     UNIQUE (hotel_id, room_number),
-    FOREIGN KEY (hotel_id) REFERENCES HOTEL(hotel_id)
+    FOREIGN KEY (hotel_id) REFERENCES HOTEL(hotel_id) ON DELETE CASCADE
 );
 
 CREATE TABLE RESERVATION (

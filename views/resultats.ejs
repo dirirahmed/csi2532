@@ -1,40 +1,99 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html class="dark" lang="fr">
 <head>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #121416; color: #ffffff; }
-        .room-card { background: #212529; border: 1px solid #343a40; border-radius: 12px; }
-        .text-cyan { color: #0dcaf0; }
-    </style>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>e-Hotels Database - Résultats</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="/styles/ui.css" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#0e0e0e',
+            'surface-container-low': '#121413',
+            'surface-container': '#181a19',
+            'surface-container-high': '#1e201f',
+            primary: '#3cddc7',
+            'primary-container': '#005047',
+            'on-primary': '#004941',
+            'on-surface': '#e5e6e4',
+            'on-surface-variant': '#aaabaa',
+            'outline-variant': '#464847'
+          }
+        }
+      }
+    };
+  </script>
 </head>
-<body class="container py-5">
-    <div class="d-flex justify-content-between mb-4">
-        <h2 class="text-white">Chambres Disponibles</h2>
-        <a href="/" class="btn btn-outline-light">Retour</a>
+<body class="bg-background text-on-surface min-h-screen">
+  <header class="bg-[#121413]/80 backdrop-blur-lg flex items-center w-full px-8 h-16 sticky top-0 z-50 border-b border-white/5">
+    <a class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors" href="/">
+      <span class="material-symbols-outlined">arrow_back</span>
+      <span class="text-sm font-medium tracking-tight">Retour</span>
+    </a>
+  </header>
+
+  <main class="p-8 max-w-7xl mx-auto w-full">
+    <div class="flex flex-col mb-10 gap-3">
+      <div class="flex items-center gap-2">
+        <span class="h-1 w-8 signature-gradient rounded-full"></span>
+        <span class="text-primary text-xs font-bold uppercase tracking-[0.2em]">Listing Query</span>
+      </div>
+      <h1 class="text-4xl font-extrabold text-on-surface tracking-tighter"><%= chambres.length %> Résultats trouvés</h1>
+      <p class="text-on-surface-variant text-sm max-w-2xl">
+        Chambres disponibles
+        <% if (typeof dateDebut !== 'undefined' && typeof dateFin !== 'undefined' && dateDebut && dateFin) { %>
+          du <%= dateDebut %> au <%= dateFin %>
+        <% } %>
+      </p>
     </div>
 
-    <div class="row g-4">
+    <% if (!chambres.length) { %>
+      <div class="bg-surface-container-low rounded-lg p-8 border border-white/5">
+        <h2 class="text-xl font-bold mb-2">Aucune chambre trouvée</h2>
+        <p class="text-on-surface-variant">Retournez à la page d’accueil pour modifier les critères de recherche.</p>
+      </div>
+    <% } else { %>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <% chambres.forEach(ch => { %>
-            <div class="col-md-6 col-lg-4">
-                <div class="room-card p-4">
-                    <h5 class="text-cyan fw-bold"><%= ch.nom_hotel %></h5>
-                    <p class="small text-white-50"><%= ch.categorie %> ★ Stars</p>
-                    <hr class="border-secondary">
-                    <p class="mb-1 text-white"><strong>Type:</strong> <%= ch.capacite %></p>
-                    <p class="mb-1 text-white"><strong>Vue:</strong> <%= ch.vue %></p>
-                    <p class="mb-1 text-white"><strong>Surface:</strong> <%= ch.superficie %> m²</p>
-                    <p class="small text-info">✨ <%= ch.commodites %></p>
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <span class="h4 text-white mb-0 fw-bold"><%= ch.prix %>$</span>
-                        <form action="/reserver" method="POST">
-                            <input type="hidden" name="id" value="<%= ch.id_chambre %>">
-                            <button class="btn btn-success fw-bold">Réserver</button>
-                        </form>
-                    </div>
+          <div class="bg-surface-container-low flex flex-col rounded-lg overflow-hidden transition-all duration-300 hover:bg-surface-container">
+            <div class="h-2 signature-gradient"></div>
+            <div class="p-6 flex flex-col grow">
+              <div class="flex justify-between items-start mb-2 gap-4">
+                <h3 class="text-lg font-bold text-on-surface tracking-tight"><%= ch.nom_hotel %></h3>
+                <span class="text-primary text-sm font-bold"><%= ch.categorie %>★</span>
+              </div>
+              <span class="text-on-surface-variant text-[11px] font-bold uppercase tracking-widest mb-4"><%= ch.capacite %> • <%= ch.vue || 'Vue standard' %></span>
+
+              <div class="space-y-2 text-sm text-on-surface mb-6">
+                <p><strong>Ville:</strong> <%= ch.ville %></p>
+                <p><strong>Superficie:</strong> <%= ch.superficie %> m²</p>
+                <p><strong>Commodités:</strong> <%= ch.commodites || 'Non spécifiées' %></p>
+              </div>
+
+              <div class="mt-auto flex items-center justify-between pt-6 border-t border-outline-variant/20">
+                <div class="flex flex-col">
+                  <span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Prix</span>
+                  <span class="text-2xl font-black text-on-surface tracking-tighter"><%= ch.prix %>$</span>
                 </div>
+
+                <form action="/reserver" method="POST">
+                  <input type="hidden" name="id" value="<%= ch.id_chambre %>">
+                  <input type="hidden" name="dateDebut" value="<%= dateDebut %>">
+                  <input type="hidden" name="dateFin" value="<%= dateFin %>">
+                  <button class="signature-gradient text-on-primary px-6 py-2.5 rounded text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary-container/20 hover:opacity-90 transition-all active:scale-95" type="submit">Réserver</button>
+                </form>
+              </div>
             </div>
+          </div>
         <% }) %>
-    </div>
+      </div>
+    <% } %>
+  </main>
 </body>
 </html>

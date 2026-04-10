@@ -5,6 +5,39 @@ require('dotenv').config();
 const app = express();
 const port = 3000;
 
+const CITY_OPTIONS = [
+    'Ottawa',
+    'Gatineau',
+    'Montreal',
+    'Toronto',
+    'Vancouver',
+    'Calgary',
+    'Quebec City',
+    'Halifax'
+];
+
+const CHAIN_OPTIONS = [
+    { id: 1, name: 'MapleStay Hotels' },
+    { id: 2, name: 'Northern Suites' },
+    { id: 3, name: 'BlueWave Resorts' },
+    { id: 4, name: 'UrbanNest Hotels' },
+    { id: 5, name: 'Continental Comfort' }
+];
+
+function getFallbackHotels() {
+    const hotels = [];
+    let id = 1;
+
+    for (const chain of CHAIN_OPTIONS) {
+        for (const city of CITY_OPTIONS) {
+            hotels.push({ hotel_id: id, name: `${chain.name} ${city}` });
+            id += 1;
+        }
+    }
+
+    return hotels;
+}
+
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -17,39 +50,244 @@ app.set('view engine', 'ejs');
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 
+function normalizeCapacity(capacite) {
+    const map = {
+        simple: 'Single',
+        double: 'Double',
+        suite: 'Suite',
+        family: 'Family',
+        Single: 'Single',
+        Double: 'Double',
+        Suite: 'Suite',
+        Family: 'Family'
+    };
+
+    return map[capacite] || '';
+}
+
+function normalizeChain(chaine) {
+    const map = {
+        'MapleStay Hotels': 'MapleStay Hotels',
+        'Northern Suites': 'Northern Suites',
+        'BlueWave Resorts': 'BlueWave Resorts',
+        'UrbanNest Hotels': 'UrbanNest Hotels',
+        'Continental Comfort': 'Continental Comfort'
+    };
+
+    return map[chaine] || '';
+}
+
+function normalizeDateRange(dateDebut, dateFin) {
+    if (!dateDebut || !dateFin) {
+        return null;
+    }
+
+    if (dateFin < dateDebut) {
+        return null;
+    }
+
+    if (dateFin === dateDebut) {
+        const start = new Date(`${dateDebut}T00:00:00`);
+        start.setDate(start.getDate() + 1);
+        return {
+            effectiveEndDate: start.toISOString().split('T')[0]
+        };
+    }
+
+    return {
+        effectiveEndDate: dateFin
+    };
+}
+
 // --- NAVIGATION ---
-app.get('/', (req, res) => res.render('recherche'));
-app.get('/admin', (req, res) => res.render('admin'));
+app.get('/', (req, res) => res.render('recherche', { cities: CITY_OPTIONS, chains: CHAIN_OPTIONS }));
+
+async function getAdminFormData() {
+    try {
+        const [chains] = await pool.query('SELECT chain_id AS id, name FROM HOTEL_CHAIN ORDER BY name');
+        const [hotels] = await pool.query('SELECT hotel_id, name FROM HOTEL ORDER BY name');
+        return { chains, hotels };
+    } catch (err) {
+        return { chains: CHAIN_OPTIONS, hotels: getFallbackHotels() };
+    }
+}
+
+async function getEmployeeRooms() {
+    try {
+        const [rooms] = await pool.query(`
+            SELECT r.room_id, r.room_number, h.name AS hotel_name
+            FROM ROOM r
+            JOIN HOTEL h ON r.hotel_id = h.hotel_id
+            ORDER BY h.name, r.room_number
+        `);
+        return rooms;
+    } catch (err) {
+        return [];
+    }
+}
+
+app.get('/admin', async(req, res) => {
+    const { chains, hotels } = await getAdminFormData();
+    res.render('admin', { chains, hotels, cities: CITY_OPTIONS });
+});
+
+async function getOrCreateClient({ nom, adresse, nas }) {
+    const [existingClient] = await pool.query(
+        'SELECT client_id FROM CLIENT WHERE ssn_sin = ?',
+        [nas]
+    );
+
+    if (existingClient.length) {
+        await pool.query(
+            'UPDATE CLIENT SET full_name = ?, address = ? WHERE client_id = ?',
+            [nom, adresse, existingClient[0].client_id]
+        );
+        return existingClient[0].client_id;
+    }
+
+    const [result] = await pool.query(
+        'INSERT INTO CLIENT (full_name, address, ssn_sin, registration_date) VALUES (?, ?, ?, CURDATE())',
+        [nom, adresse, nas]
+    );
+
+    return result.insertId;
+}
+
+async function searchRooms(filters) {
+    const {
+        capacite,
+        categorie,
+        prixMax,
+        superficie,
+        ville,
+        chaine,
+        dateDebut,
+        dateFin,
+        numChambres
+    } = filters;
+
+    const normalizedDates = normalizeDateRange(dateDebut, dateFin);
+    if (!normalizedDates) {
+        return [];
+    }
+    const effectiveEndDate = normalizedDates.effectiveEndDate;
+
+    const normalizedCapacity = normalizeCapacity(capacite);
+    const normalizedChain = normalizeChain(chaine);
+    const queryVille = ville || '';
+    const queryCat = categorie ? Number(categorie) : null;
+    const maxPrice = prixMax ? Number(prixMax) : 9999;
+    const minArea = superficie ? Number(superficie) : 0;
+    const minRooms = numChambres ? Number(numChambres) : null;
+
+    let query = `
+        SELECT r.room_id as id_chambre,
+               h.name as nom_hotel,
+               h.category as categorie,
+               h.city as ville,
+               h.num_rooms as nombre_chambres_hotel,
+               hc.name as chaine,
+               r.price as prix,
+               r.capacity as capacite,
+               r.extendable_bed as lit_additionnel,
+               r.area as superficie,
+               r.view_type as vue,
+               r.amenities as commodites,
+               r.damage_status as etat
+        FROM ROOM r
+        JOIN HOTEL h ON r.hotel_id = h.hotel_id
+        JOIN HOTEL_CHAIN hc ON h.chain_id = hc.chain_id
+        WHERE r.price <= ?
+          AND r.area >= ?
+          AND NOT EXISTS (
+                SELECT 1
+                FROM RESERVATION res
+                WHERE res.room_id = r.room_id
+                  AND res.status IN ('Pending', 'Confirmed')
+                  AND NOT (? >= res.end_date OR ? <= res.start_date)
+          )
+          AND NOT EXISTS (
+                SELECT 1
+                FROM RENTAL ren
+                WHERE ren.room_id = r.room_id
+                  AND ren.status = 'Active'
+                  AND NOT (? >= ren.check_out_date OR ? <= ren.check_in_date)
+          )`;
+
+    const params = [maxPrice, minArea, dateDebut, effectiveEndDate, dateDebut, effectiveEndDate];
+
+    if (normalizedCapacity) {
+        query += ' AND r.capacity = ?';
+        params.push(normalizedCapacity);
+    }
+
+    if (Number.isInteger(queryCat)) {
+        query += ' AND h.category = ?';
+        params.push(queryCat);
+    }
+
+    if (queryVille) {
+        query += ' AND h.city = ?';
+        params.push(queryVille);
+    }
+
+    if (normalizedChain) {
+        query += ' AND hc.name = ?';
+        params.push(normalizedChain);
+    }
+
+    if (Number.isInteger(minRooms)) {
+        query += ' AND h.num_rooms >= ?';
+        params.push(minRooms);
+    }
+
+    query += ' ORDER BY h.name, r.price';
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+}
 
 // --- SEARCH: Combined Criteria (Req #8) ---
 app.get('/rechercher', async(req, res) => {
-    const { capacite, categorie, prixMax, superficie, ville, chaine } = req.query;
+    const { dateDebut, dateFin } = req.query;
     try {
-        const queryVille = ville ? `%${ville}%` : '%';
-        const queryCat = categorie || '%';
-        const queryChain = chaine ? `%${chaine}%` : '%';
+        const rows = await searchRooms(req.query);
+        res.render('resultats', { chambres: rows, dateDebut, dateFin });
+    } catch (err) {
+        console.error('Search Error:', err);
+        res.status(500).send("Search Error");
+    }
+});
 
-        const [rows] = await pool.query(`
-            SELECT r.room_id as id_chambre, h.name as nom_hotel, h.category as categorie, 
-                   h.city as ville, r.price as prix, r.capacity as capacite, 
-                   r.area as superficie, r.view_type as vue, r.amenities as commodites
-            FROM ROOM r
-            JOIN HOTEL h ON r.hotel_id = h.hotel_id
-            JOIN HOTEL_CHAIN hc ON h.chain_id = hc.chain_id
-            WHERE r.capacity = ? AND h.category LIKE ? AND h.city LIKE ? 
-              AND hc.name LIKE ? AND r.price <= ? AND r.area >= ?`, [capacite, queryCat, queryVille, queryChain, prixMax || 9999, superficie || 0]);
-        res.render('resultats', { chambres: rows });
-    } catch (err) { res.status(500).send("Search Error"); }
+app.get('/api/rechercher', async(req, res) => {
+    try {
+        const rows = await searchRooms(req.query);
+        res.json({ chambres: rows });
+    } catch (err) {
+        console.error('Live Search Error:', err);
+        res.status(500).json({ error: 'Search Error' });
+    }
 });
 
 // --- EMPLOYEE: Conversions & Direct Rental (Req #6, #8) ---
 app.get('/employe', async(req, res) => {
     try {
         const [reserves] = await pool.query(`
-            SELECT res.reservation_id as id, c.full_name as client 
-            FROM RESERVATION res JOIN CLIENT c ON res.client_id = c.client_id`);
-        res.render('employe', { reservations: reserves });
-    } catch (err) { res.render('employe', { reservations: [] }); }
+            SELECT res.reservation_id as id,
+                   c.full_name as client,
+                   c.ssn_sin as nas,
+                   res.room_id,
+                   DATE_FORMAT(res.start_date, '%Y-%m-%d') as start_date
+            FROM RESERVATION res
+            JOIN CLIENT c ON res.client_id = c.client_id
+            WHERE res.status IN ('Pending', 'Confirmed')
+            ORDER BY res.start_date, res.reservation_id`);
+        const rooms = await getEmployeeRooms();
+        res.render('employe', { reservations: reserves, rooms });
+    } catch (err) {
+        const rooms = await getEmployeeRooms();
+        res.render('employe', { reservations: [], rooms });
+    }
 });
 
 // Conversion: Reservation -> Rental (Check-in)
@@ -59,9 +297,10 @@ app.post('/checkin/:id', async(req, res) => {
         if (reservation.length > 0) {
             const r = reservation[0];
             await pool.query(
-                'INSERT INTO RENTAL (client_id, room_id, check_in_date, check_out_date, status) VALUES (?, ?, ?, ?, "Active")', [r.client_id, r.room_id, r.start_date, r.end_date]
+                'INSERT INTO RENTAL (client_id, room_id, reservation_id, check_in_date, check_out_date, status) VALUES (?, ?, ?, ?, ?, "Active")',
+                [r.client_id, r.room_id, r.reservation_id, r.start_date, r.end_date]
             );
-            await pool.query('DELETE FROM RESERVATION WHERE reservation_id = ?', [req.params.id]);
+            await pool.query('UPDATE RESERVATION SET status = "Confirmed" WHERE reservation_id = ?', [req.params.id]);
         }
         res.redirect('/employe');
     } catch (err) { res.status(500).send("Check-in Error"); }
@@ -98,10 +337,28 @@ app.post('/admin/add-employee', async(req, res) => {
     } catch (err) { res.status(500).send("CRUD Error"); }
 });
 
-app.post('/admin/add-room', async(req, res) => {
-    const { hotel_id, prix, capacite } = req.body;
+app.post('/admin/add-hotel', async(req, res) => {
+    const { chain_id, nom, categorie, adresse, ville, province_state, country, postal_code, email, phone } = req.body;
     try {
-        await pool.query('INSERT INTO ROOM (hotel_id, price, capacity, area, view_type, room_number, extendable_bed) VALUES (?, ?, ?, 25, "City", "AUTO", 0)', [hotel_id, prix, capacite]);
+        await pool.query(
+            `INSERT INTO HOTEL
+            (chain_id, name, category, address, city, province_state, country, postal_code, num_rooms, contact_email, contact_phone)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+            [chain_id, nom, categorie, adresse, ville, province_state, country, postal_code, email, phone]
+        );
+        res.redirect('/admin');
+    } catch (err) { res.status(500).send("CRUD Error"); }
+});
+
+app.post('/admin/add-room', async(req, res) => {
+    const { hotel_id, room_number, prix, commodites, capacite, vue, extendable_bed, damage_status, area } = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO ROOM
+            (hotel_id, room_number, price, amenities, capacity, view_type, extendable_bed, damage_status, area)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [hotel_id, room_number, prix, commodites || null, capacite, vue, Number(extendable_bed), damage_status || 'None', area]
+        );
         res.redirect('/admin');
     } catch (err) { res.status(500).send("CRUD Error"); }
 });
@@ -109,12 +366,91 @@ app.post('/admin/add-room', async(req, res) => {
 // --- STATS (Req #9) ---
 app.get('/stats', async(req, res) => {
     try {
-        const [cityStats] = await pool.query('SELECT * FROM available_rooms_by_city');
+        let cityStats = [];
+        try {
+            const [rows] = await pool.query('SELECT * FROM available_rooms_by_city');
+            cityStats = rows;
+        } catch (viewErr) {
+            const [rows] = await pool.query('SELECT * FROM available_rooms_by_zone');
+            cityStats = rows;
+        }
         const [hotelStats] = await pool.query('SELECT * FROM hotel_total_capacity');
         res.render('stats', { cityStats, hotelStats });
     } catch (err) { res.render('stats', { cityStats: [], hotelStats: [] }); }
 });
 
-app.post('/reserver', (req, res) => res.render('reservation'));
+app.post('/reserver', async(req, res) => {
+    const { id, dateDebut, dateFin } = req.body;
+
+    try {
+        const normalizedDates = normalizeDateRange(dateDebut, dateFin);
+        if (!normalizedDates) {
+            return res.status(400).send('Dates invalides');
+        }
+
+        const [rooms] = await pool.query(
+            `SELECT r.room_id, r.room_number, r.price, r.capacity, r.view_type, r.area,
+                    r.extendable_bed, r.damage_status, r.amenities,
+                    h.name AS hotel_name, h.city
+             FROM ROOM r
+             JOIN HOTEL h ON r.hotel_id = h.hotel_id
+             WHERE r.room_id = ?`,
+            [id]
+        );
+
+        if (!rooms.length) {
+            return res.status(404).send('Chambre non trouvee');
+        }
+
+        res.render('reservation', {
+            chambre: rooms[0],
+            dateDebut,
+            dateFin,
+            success: false
+        });
+    } catch (err) {
+        res.status(500).send('Reservation Error');
+    }
+});
+
+app.post('/reserver/confirmer', async(req, res) => {
+    const { room_id, dateDebut, dateFin, nom, adresse, nas } = req.body;
+
+    try {
+        const normalizedDates = normalizeDateRange(dateDebut, dateFin);
+        if (!normalizedDates) {
+            return res.status(400).send('Dates invalides');
+        }
+
+        const clientId = await getOrCreateClient({ nom, adresse, nas });
+
+        const [result] = await pool.query(
+            `INSERT INTO RESERVATION (client_id, room_id, start_date, end_date, reservation_date, status)
+             VALUES (?, ?, ?, ?, CURDATE(), "Pending")`,
+            [clientId, room_id, dateDebut, normalizedDates.effectiveEndDate]
+        );
+
+        const [rooms] = await pool.query(
+            `SELECT r.room_id, r.room_number, r.price, r.capacity, r.view_type, r.area,
+                    r.extendable_bed, r.damage_status, r.amenities,
+                    h.name AS hotel_name, h.city
+             FROM ROOM r
+             JOIN HOTEL h ON r.hotel_id = h.hotel_id
+             WHERE r.room_id = ?`,
+            [room_id]
+        );
+
+        res.render('reservation', {
+            chambre: rooms[0],
+            dateDebut,
+            dateFin,
+            success: true,
+            reservationId: result.insertId
+        });
+    } catch (err) {
+        console.error('Reservation Error:', err);
+        res.status(500).send('Reservation Error');
+    }
+});
 
 app.listen(port, () => console.log(`🚀 System Online: http://localhost:${port}`));

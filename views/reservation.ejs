@@ -1,38 +1,108 @@
 <!DOCTYPE html>
-<html lang="fr">
-
+<html class="dark" lang="fr">
 <head>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: #121416;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>e-Hotels Database - Reservation</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="/styles/ui.css" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#0e0e0e',
+            'surface-container-low': '#121413',
+            'surface-container': '#181a19',
+            'surface-container-highest': '#242625',
+            primary: '#3cddc7',
+            'primary-container': '#005047',
+            'on-primary': '#004941',
+            'on-surface': '#e5e6e4',
+            'on-surface-variant': '#aaabaa',
+            'outline-variant': '#464847'
+          }
         }
-        
-        .success-card {
-            background: #212529;
-            border: 2px solid #0dcaf0;
-            border-radius: 15px;
-            padding: 3rem;
-            text-align: center;
-        }
-    </style>
-    <title>Succès</title>
+      }
+    };
+  </script>
 </head>
+<body class="bg-background text-on-surface min-h-screen">
+  <header class="bg-[#121413]/80 backdrop-blur-lg flex items-center w-full px-8 h-16 sticky top-0 z-50 border-b border-white/5">
+    <a class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors" href="/">
+      <span class="material-symbols-outlined">arrow_back</span>
+      <span class="text-sm font-medium tracking-tight">Retour</span>
+    </a>
+  </header>
 
-<body>
-    <div class="success-card shadow-lg">
-        <h1 style="color: #0dcaf0;">✔️ Réservation Confirmée</h1>
-        <p class="lead mt-3">La chambre a été bloquée avec succès.</p>
-        <p class="text-white-50 small">ID de Transaction: #
-            <%= Math.floor(Math.random() * 900000) %>
-        </p>
-        <a href="/" class="btn btn-outline-info mt-4">Retour à l'Accueil</a>
-    </div>
+  <main class="max-w-5xl mx-auto w-full p-6 lg:p-8">
+    <% if (success) { %>
+      <div class="bg-surface-container-low rounded-xl border border-white/5 p-8 space-y-4">
+        <div class="inline-flex items-center gap-2 text-primary font-semibold">
+          <span class="material-symbols-outlined">check_circle</span>
+          Reservation confirmee
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight">Reservation enregistree</h1>
+        <p class="text-on-surface-variant">La reservation a ete ajoutee et apparait maintenant dans l'onglet employe.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 text-sm">
+          <div class="bg-surface-container rounded-lg p-4"><strong>ID reservation:</strong> #<%= reservationId %></div>
+          <div class="bg-surface-container rounded-lg p-4"><strong>Hotel:</strong> <%= chambre.hotel_name %></div>
+          <div class="bg-surface-container rounded-lg p-4"><strong>Chambre:</strong> <%= chambre.room_id %></div>
+          <div class="bg-surface-container rounded-lg p-4"><strong>Dates:</strong> <%= dateDebut %> au <%= dateFin %></div>
+        </div>
+        <div class="pt-4">
+          <a class="inline-flex items-center justify-center signature-gradient text-on-primary px-6 py-3 rounded-lg font-bold" href="/employe">Voir dans Employe</a>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-surface-container-low rounded-xl border border-white/5 p-6 space-y-4">
+          <div>
+            <h1 class="text-3xl font-extrabold tracking-tight">Finaliser la reservation</h1>
+            <p class="text-on-surface-variant mt-1">Entrez les informations du client requises par le projet.</p>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div class="bg-surface-container rounded-lg p-4"><strong>Hotel:</strong> <%= chambre.hotel_name %></div>
+            <div class="bg-surface-container rounded-lg p-4"><strong>Ville:</strong> <%= chambre.city %></div>
+            <div class="bg-surface-container rounded-lg p-4"><strong>Chambre:</strong> <%= chambre.room_id %> - <%= chambre.capacity %> - Numero <%= chambre.room_number %></div>
+            <div class="bg-surface-container rounded-lg p-4"><strong>Dates:</strong> <%= dateDebut %> au <%= dateFin %></div>
+            <div class="bg-surface-container rounded-lg p-4"><strong>Prix:</strong> <%= chambre.price %>$</div>
+            <div class="bg-surface-container rounded-lg p-4"><strong>Vue:</strong> <%= chambre.view_type || 'None' %></div>
+            <div class="bg-surface-container rounded-lg p-4"><strong>Lit additionnel:</strong> <%= Number(chambre.extendable_bed) ? 'Oui' : 'Non' %></div>
+            <div class="bg-surface-container rounded-lg p-4"><strong>Etat:</strong> <%= chambre.damage_status || 'None' %></div>
+            <div class="bg-surface-container rounded-lg p-4"><strong>Commodites:</strong> <%= chambre.amenities || 'Aucune commodite specifiee' %></div>
+          </div>
+        </div>
+
+        <div class="bg-surface-container-low rounded-xl border border-white/5 p-6">
+          <form action="/reserver/confirmer" method="POST" class="space-y-5">
+            <input name="room_id" type="hidden" value="<%= chambre.room_id %>"/>
+            <input name="dateDebut" type="hidden" value="<%= dateDebut %>"/>
+            <input name="dateFin" type="hidden" value="<%= dateFin %>"/>
+
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Nom complet</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="nom" required type="text"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Adresse</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="adresse" required type="text"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">NAS</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" inputmode="numeric" maxlength="9" minlength="9" name="nas" pattern="[0-9]{9}" required type="text"/>
+            </div>
+
+            <button class="w-full signature-gradient text-on-primary font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all active:scale-[0.98]" type="submit">
+              Confirmer la reservation
+            </button>
+          </form>
+        </div>
+      </div>
+    <% } %>
+  </main>
 </body>
-
 </html>

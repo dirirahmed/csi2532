@@ -1,43 +1,152 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html class="dark" lang="fr">
 <head>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background:#121416; color:white; }
-        .card { background:#212529; border:1px solid #495057; }
-        .form-control { background-color: #2b3035 !important; color: white !important; border: 1px solid #495057; }
-    </style>
-    <title>Portail Employé</title>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>e-Hotels Database - Employe</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="/styles/ui.css" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#0e0e0e',
+            surface: '#0e0e0e',
+            'surface-container-low': '#121413',
+            'surface-container': '#181a19',
+            'surface-container-high': '#1e201f',
+            'surface-container-highest': '#242625',
+            primary: '#3cddc7',
+            'primary-container': '#005047',
+            'on-primary': '#004941',
+            'on-surface': '#e5e6e4',
+            'on-surface-variant': '#aaabaa',
+            'outline-variant': '#464847'
+          }
+        }
+      }
+    };
+  </script>
 </head>
-<body class="container py-5">
-    <div class="d-flex justify-content-between mb-5">
-        <h2 style="color: #0dcaf0;">💼 Espace Employé</h2>
-        <a href="/" class="btn btn-outline-light">Accueil</a>
+<body class="bg-background text-on-surface min-h-screen flex">
+  <aside class="hidden md:flex sticky top-0 flex-col h-screen py-6 px-4 gap-8 bg-[#0e0e0e] border-r border-white/5 w-64 shrink-0 self-start">
+    <div class="flex items-center gap-3 px-2">
+      <div class="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center">
+        <span class="material-symbols-outlined text-on-primary text-sm">inventory_2</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-teal-400 font-black tracking-tight leading-none">e-Hotels</span>
+        <span class="text-[10px] text-on-surface-variant font-medium">CSI2532 Project</span>
+      </div>
     </div>
+    <nav class="flex flex-col gap-2 flex-grow">
+      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/">
+        <span class="material-symbols-outlined text-lg">dashboard</span>
+        <span>Accueil</span>
+      </a>
+      <a class="flex items-center gap-3 bg-teal-400/10 text-teal-400 rounded-lg px-4 py-2 border-l-4 border-teal-400 font-medium text-sm" href="/employe">
+        <span class="material-symbols-outlined text-lg">badge</span>
+        <span>Employe</span>
+      </a>
+      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/admin">
+        <span class="material-symbols-outlined text-lg">admin_panel_settings</span>
+        <span>Admin</span>
+      </a>
+      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/stats">
+        <span class="material-symbols-outlined text-lg">analytics</span>
+        <span>Stats</span>
+      </a>
+    </nav>
+  </aside>
 
-    <div class="card p-4 mb-5">
-        <h4 class="mb-4">Check-ins (Réservation → Location)</h4>
-        <table class="table table-dark table-hover">
-            <thead><tr><th>ID</th><th>Client</th><th>Action</th></tr></thead>
-            <tbody>
+  <main class="flex-grow flex flex-col min-w-0 overflow-y-auto">
+    <header class="bg-[#121413]/80 backdrop-blur-lg flex items-center w-full px-8 h-16 sticky top-0 z-50 border-b border-white/5">
+      <div class="flex flex-col">
+        <span class="text-teal-400 font-bold tracking-tighter uppercase text-sm">e-Hotels</span>
+        <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Employee Console</span>
+      </div>
+    </header>
+
+    <div class="p-8 max-w-7xl mx-auto w-full space-y-10">
+      <section class="space-y-4">
+        <div>
+          <h2 class="text-2xl font-bold tracking-tight">Reservations a convertir</h2>
+          <p class="text-on-surface-variant text-sm">Check-in d'une reservation vers une location.</p>
+        </div>
+
+        <div class="bg-surface-container-low rounded-xl overflow-hidden border border-white/5">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-surface-container">
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Reservation</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Client</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">NAS</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Chambre</th>
+                  <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Arrivee</th>
+                  <th class="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                <% if (!reservations.length) { %>
+                  <tr>
+                    <td class="px-6 py-6 text-sm text-on-surface-variant" colspan="6">Aucune reservation en attente.</td>
+                  </tr>
+                <% } %>
                 <% reservations.forEach(r => { %>
-                    <tr>
-                        <td><%= r.id %></td>
-                        <td><%= r.client %></td>
-                        <td><button class="btn btn-info btn-sm fw-bold">Check-in</button></td>
-                    </tr>
+                  <tr class="hover:bg-surface-container transition-colors">
+                    <td class="px-6 py-5 font-mono text-sm text-primary-dim">#<%= r.id %></td>
+                    <td class="px-6 py-5 text-sm"><%= r.client %></td>
+                    <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.nas %></td>
+                    <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.room_id %></td>
+                    <td class="px-6 py-5 text-sm text-on-surface-variant"><%= r.start_date %></td>
+                    <td class="px-6 py-5 text-right">
+                      <form action="/checkin/<%= r.id %>" method="POST">
+                        <button class="signature-gradient text-on-primary px-4 py-2 rounded text-xs font-bold uppercase tracking-tighter hover:opacity-90 transition-all active:scale-95" type="submit">Check-in</button>
+                      </form>
+                    </td>
+                  </tr>
                 <% }) %>
-            </tbody>
-        </table>
-    </div>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-    <div class="card p-4">
-        <h4 class="mb-4">Location Directe</h4>
-        <form class="row g-3">
-            <div class="col-md-4"><input type="text" class="form-control" placeholder="NAS Client"></div>
-            <div class="col-md-4"><input type="number" class="form-control" placeholder="ID Chambre"></div>
-            <div class="col-md-4"><button class="btn btn-success w-100 fw-bold">Louer</button></div>
-        </form>
+      <section class="max-w-2xl">
+        <div class="bg-surface-container-low rounded-xl p-8 border border-white/5 space-y-6">
+          <div>
+            <h2 class="text-2xl font-bold tracking-tight">Location directe</h2>
+            <p class="text-on-surface-variant text-sm mt-1">Creer une location sans reservation.</p>
+          </div>
+
+          <form action="/louer-direct" method="POST" class="space-y-5">
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Client NAS</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface focus:ring-1 focus:ring-primary transition-all placeholder:text-on-surface-variant/50" inputmode="numeric" maxlength="9" minlength="9" name="nas" pattern="[0-9]{9}" placeholder="000000000" required type="text"/>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Chambre</label>
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface focus:ring-1 focus:ring-primary transition-all" name="room_id" required>
+                <option value="">Choisir une chambre</option>
+                <% rooms.forEach(room => { %>
+                  <option value="<%= room.room_id %>">#<%= room.room_id %> - <%= room.hotel_name %> - Chambre <%= room.room_number %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <button class="w-full signature-gradient text-on-primary py-4 rounded-lg font-bold uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all" type="submit">
+              Louer
+            </button>
+          </form>
+        </div>
+      </section>
     </div>
+  </main>
 </body>
 </html>

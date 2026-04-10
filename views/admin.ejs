@@ -1,80 +1,252 @@
 <!DOCTYPE html>
-<html lang="fr">
-
+<html class="dark" lang="fr">
 <head>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: #121416;
-            color: white;
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>e-Hotels Database - Admin</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="/styles/ui.css" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#0e0e0e',
+            surface: '#0e0e0e',
+            'surface-container-low': '#121413',
+            'surface-container': '#181a19',
+            'surface-container-highest': '#242625',
+            primary: '#3cddc7',
+            'primary-container': '#005047',
+            'on-primary': '#004941',
+            'on-surface': '#e5e6e4',
+            'on-surface-variant': '#aaabaa'
+          }
         }
-        
-        .card {
-            background: #212529;
-            border: 1px solid #495057;
-        }
-        
-        .form-control,
-        .form-select {
-            background-color: #2b3035 !important;
-            color: white !important;
-            border: 1px solid #495057;
-        }
-    </style>
-    <title>Administration</title>
+      }
+    };
+  </script>
 </head>
-
-<body class="container py-5">
-    <div class="d-flex justify-content-between mb-5">
-        <h2 style="color: #ffc107;">⚙️ Administration (CRUD)</h2>
-        <div>
-            <a href="/stats" class="btn btn-info btn-sm">Stats</a>
-            <a href="/" class="btn btn-outline-light btn-sm ms-2">Accueil</a>
-        </div>
+<body class="bg-background text-on-surface min-h-screen flex">
+  <aside class="hidden md:flex sticky top-0 flex-col h-screen py-6 px-4 gap-8 bg-[#0e0e0e] border-r border-white/5 w-64 shrink-0 self-start">
+    <div class="flex items-center gap-3 px-2">
+      <div class="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center">
+        <span class="material-symbols-outlined text-on-primary text-sm">inventory_2</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-teal-400 font-black tracking-tight leading-none">e-Hotels</span>
+        <span class="text-[10px] text-on-surface-variant font-medium">CSI2532 Project</span>
+      </div>
     </div>
+    <nav class="flex flex-col gap-2 flex-grow">
+      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/">
+        <span class="material-symbols-outlined text-lg">dashboard</span>
+        <span>Accueil</span>
+      </a>
+      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/employe">
+        <span class="material-symbols-outlined text-lg">badge</span>
+        <span>Employe</span>
+      </a>
+      <a class="flex items-center gap-3 bg-teal-400/10 text-teal-400 rounded-lg px-4 py-2 border-l-4 border-teal-400 font-medium text-sm" href="/admin">
+        <span class="material-symbols-outlined text-lg">admin_panel_settings</span>
+        <span>Admin</span>
+      </a>
+      <a class="flex items-center gap-3 text-[#aaabaa] px-4 py-2 hover:bg-[#181a19] rounded-lg transition-all font-medium text-sm" href="/stats">
+        <span class="material-symbols-outlined text-lg">analytics</span>
+        <span>Stats</span>
+      </a>
+    </nav>
+  </aside>
 
-    <div class="row g-4">
-        <div class="col-md-6">
-            <div class="card p-4">
-                <h5>Ajouter un Client</h5>
-                <form action="/admin/add-client" method="POST" class="mt-3">
-                    <input type="text" name="nom" class="form-control mb-2" placeholder="Nom Complet" required>
-                    <input type="text" name="adresse" class="form-control mb-2" placeholder="Adresse" required>
-                    <input type="text" name="nas" class="form-control mb-2" placeholder="NAS" required>
-                    <button type="submit" class="btn btn-warning w-100 fw-bold">Enregistrer Client</button>
-                </form>
+  <main class="flex-grow flex flex-col min-w-0 overflow-y-auto pb-8">
+    <header class="bg-[#121413]/80 backdrop-blur-lg flex items-center w-full px-8 h-16 sticky top-0 z-50 border-b border-white/5">
+      <div class="flex flex-col">
+        <span class="text-teal-400 font-bold tracking-tighter uppercase text-sm">e-Hotels</span>
+        <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Admin Console</span>
+      </div>
+    </header>
+
+    <section class="p-6 lg:p-8 max-w-6xl mx-auto w-full">
+      <div class="mb-8">
+        <h2 class="text-2xl lg:text-3xl font-extrabold tracking-tight text-on-surface mb-2">Administration</h2>
+        <p class="text-on-surface-variant max-w-2xl">Ajouter des clients, des chambres et des employes pour la demonstration.</p>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="bg-surface-container-low rounded-xl p-5 lg:p-6 ghost-border">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-lg">person_add</span>
+            <h3 class="text-lg font-bold tracking-tight text-on-surface">Ajouter un client</h3>
+          </div>
+          <form action="/admin/add-client" method="POST" class="space-y-5">
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Nom complet</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50" name="nom" placeholder="Nom complet" required type="text"/>
             </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Adresse</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50" name="adresse" placeholder="Adresse" required type="text"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">NAS</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50" inputmode="numeric" maxlength="9" minlength="9" name="nas" pattern="[0-9]{9}" placeholder="000000000" required type="text"/>
+            </div>
+            <button class="w-full signature-gradient text-on-primary font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all active:scale-[0.98]" type="submit">Enregistrer client</button>
+          </form>
         </div>
 
-        <div class="col-md-6">
-            <div class="card p-4">
-                <h5>Ajouter une Chambre</h5>
-                <form action="/admin/add-room" method="POST" class="mt-3">
-                    <input type="number" name="hotel_id" class="form-control mb-2" placeholder="ID de l'Hôtel" required>
-                    <input type="number" name="prix" class="form-control mb-2" placeholder="Prix" required>
-                    <select name="capacite" class="form-select mb-3">
-                        <option value="simple">Simple</option>
-                        <option value="double">Double</option>
-                        <option value="suite">Suite</option>
-                    </select>
-                    <button type="submit" class="btn btn-warning w-100 fw-bold">Enregistrer Chambre</button>
-                </form>
+        <div class="bg-surface-container rounded-xl p-5 lg:p-6 border border-white/5">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-lg">meeting_room</span>
+            <h3 class="text-lg font-bold tracking-tight text-on-surface">Ajouter une chambre</h3>
+          </div>
+          <form action="/admin/add-room" method="POST" class="space-y-5">
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Hotel</label>
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="hotel_id" required>
+                <option value="">Choisir un hotel</option>
+                <% hotels.forEach(hotel => { %>
+                  <option value="<%= hotel.hotel_id %>">#<%= hotel.hotel_id %> - <%= hotel.name %></option>
+                <% }) %>
+              </select>
             </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Numero de chambre</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="room_number" required type="text"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Prix</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" min="0" name="prix" required step="0.01" type="number"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Capacite</label>
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="capacite">
+                <option value="Single">Simple</option>
+                <option value="Double">Double</option>
+                <option value="Suite">Suite</option>
+                <option value="Family">Family</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Vue</label>
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="vue">
+                <option value="Sea">Sea</option>
+                <option value="Mountain">Mountain</option>
+                <option value="City">City</option>
+                <option value="Garden">Garden</option>
+                <option value="None">None</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Superficie</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" min="0" name="area" required step="0.01" type="number"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Lit additionnel</label>
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="extendable_bed">
+                <option value="0">Non</option>
+                <option value="1">Oui</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Commodites</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="commodites" placeholder="TV, AC, WiFi" type="text"/>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Etat / dommages</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="damage_status" placeholder="None" type="text"/>
+            </div>
+            <button class="w-full signature-gradient text-on-primary font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all active:scale-[0.98]" type="submit">Enregistrer chambre</button>
+          </form>
         </div>
 
-        <div class="col-md-6">
-            <div class="card p-4">
-                <h5>Ajouter un Employé</h5>
-                <form action="/admin/add-employee" method="POST" class="mt-3">
-                    <input type="text" name="nom" class="form-control mb-2" placeholder="Nom Complet" required>
-                    <input type="text" name="nas" class="form-control mb-2" placeholder="NAS" required>
-                    <input type="text" name="role" class="form-control mb-2" placeholder="Rôle (ex: Gestionnaire)" required>
-                    <input type="number" name="hotel_id" class="form-control mb-2" placeholder="ID Hôtel" required>
-                    <button type="submit" class="btn btn-warning w-100 fw-bold">Enregistrer Employé</button>
-                </form>
+        <div class="bg-surface-container rounded-xl p-5 lg:p-6 border border-white/5">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-lg">apartment</span>
+            <h3 class="text-lg font-bold tracking-tight text-on-surface">Ajouter un hotel</h3>
+          </div>
+          <form action="/admin/add-hotel" method="POST" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="chain_id" required>
+                <option value="">Choisir une chaine</option>
+                <% chains.forEach(chain => { %>
+                  <option value="<%= chain.id %>"><%= chain.name %></option>
+                <% }) %>
+              </select>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" max="5" min="1" name="categorie" placeholder="Categorie" required type="number"/>
             </div>
+            <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="nom" placeholder="Nom de l'hotel" required type="text"/>
+            <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="adresse" placeholder="Adresse" required type="text"/>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="ville" required>
+                <option value="">Choisir une ville</option>
+                <% cities.forEach(city => { %>
+                  <option value="<%= city %>"><%= city %></option>
+                <% }) %>
+              </select>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="province_state" placeholder="Province / Etat" required type="text"/>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="country" placeholder="Pays" required type="text"/>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="postal_code" placeholder="Code postal" required type="text"/>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="email" placeholder="Email" required type="email"/>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="phone" placeholder="Telephone" required type="text"/>
+            </div>
+            <button class="w-full signature-gradient text-on-primary font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all active:scale-[0.98]" type="submit">Enregistrer hotel</button>
+          </form>
         </div>
-    </div>
+
+        <div class="xl:col-span-2 bg-surface-container-low rounded-xl p-6 lg:p-7 ghost-border">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <span class="material-symbols-outlined text-primary text-3xl">engineering</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight text-on-surface">Ajouter un employe</h3>
+              <p class="text-xs text-on-surface-variant uppercase tracking-tighter">Gestion simple des employes</p>
+            </div>
+          </div>
+
+          <form action="/admin/add-employee" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Nom complet</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="nom" required type="text"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">NAS</label>
+              <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" inputmode="numeric" maxlength="9" minlength="9" name="nas" pattern="[0-9]{9}" required type="text"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Role</label>
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="role">
+                <option value="Manager">Manager</option>
+                <option value="Receptionist">Receptionist</option>
+                <option value="Housekeeping">Housekeeping</option>
+                <option value="Admin">Admin</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Hotel</label>
+              <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="hotel_id" required>
+                <option value="">Choisir un hotel</option>
+                <% hotels.forEach(hotel => { %>
+                  <option value="<%= hotel.hotel_id %>">#<%= hotel.hotel_id %> - <%= hotel.name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <button class="w-full signature-gradient text-on-primary font-bold py-3.5 px-6 rounded-lg hover:opacity-90 transition-all active:scale-[0.98]" type="submit">Enregistrer employe</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
 </body>
-
 </html>

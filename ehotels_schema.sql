@@ -65,29 +65,30 @@ CREATE TABLE ROOM (
 
 CREATE TABLE RESERVATION (
     reservation_id INT AUTO_INCREMENT PRIMARY KEY,
-    client_id INT NOT NULL,
-    room_id INT NOT NULL,
+    client_id INT,
+    room_id INT,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     reservation_date DATE NOT NULL,
     status VARCHAR(50) NOT NULL CHECK (status IN ('Pending', 'Confirmed', 'Cancelled')),
     CHECK (end_date > start_date),
-    FOREIGN KEY (client_id) REFERENCES CLIENT(client_id),
-    FOREIGN KEY (room_id) REFERENCES ROOM(room_id)
+    FOREIGN KEY (client_id) REFERENCES CLIENT(client_id) ON DELETE SET NULL,
+    FOREIGN KEY (room_id) REFERENCES ROOM(room_id) ON DELETE SET NULL
 );
 
 CREATE TABLE RENTAL (
     rental_id INT AUTO_INCREMENT PRIMARY KEY,
-    client_id INT NOT NULL,
-    room_id INT NOT NULL,
+    client_id INT,
+    room_id INT,
     employee_id INT,
     reservation_id INT,
     check_in_date DATE NOT NULL,
     check_out_date DATE NOT NULL,
     status VARCHAR(50) NOT NULL CHECK (status IN ('Active', 'Completed', 'Cancelled')),
     CHECK (check_out_date > check_in_date),
-    FOREIGN KEY (client_id) REFERENCES CLIENT(client_id),
-    FOREIGN KEY (room_id) REFERENCES ROOM(room_id),
-    FOREIGN KEY (employee_id) REFERENCES EMPLOYEE(employee_id),
-    FOREIGN KEY (reservation_id) REFERENCES RESERVATION(reservation_id)
+    UNIQUE (reservation_id),
+    FOREIGN KEY (client_id) REFERENCES CLIENT(client_id) ON DELETE SET NULL,
+    FOREIGN KEY (room_id) REFERENCES ROOM(room_id) ON DELETE SET NULL,
+    FOREIGN KEY (employee_id) REFERENCES EMPLOYEE(employee_id) ON DELETE SET NULL,
+    FOREIGN KEY (reservation_id) REFERENCES RESERVATION(reservation_id) ON DELETE SET NULL
 );

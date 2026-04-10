@@ -31,7 +31,13 @@
   </script>
 </head>
 <body class="bg-background text-on-surface min-h-screen flex">
-  <% const showEmployeeReturn = typeof returnToEmployee !== 'undefined' ? returnToEmployee : false; %>
+  <%
+    const showEmployeeReturn = typeof returnToEmployee !== 'undefined' ? returnToEmployee : false;
+    const clientRows = typeof clients !== 'undefined' ? clients : [];
+    const employeeRows = typeof employees !== 'undefined' ? employees : [];
+    const roomRows = typeof rooms !== 'undefined' ? rooms : [];
+    const scopedAdminSession = typeof adminSession !== 'undefined' ? adminSession : null;
+  %>
   <aside class="hidden md:flex sticky top-0 flex-col h-screen py-6 px-4 gap-8 bg-[#0e0e0e] border-r border-white/5 w-64 shrink-0 self-start">
     <div class="flex items-center gap-3 px-2">
       <div class="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center">
@@ -74,7 +80,13 @@
     <section class="p-6 lg:p-8 max-w-6xl mx-auto w-full">
       <div class="mb-8">
         <h2 class="text-2xl lg:text-3xl font-extrabold tracking-tight text-on-surface mb-2">Administration</h2>
-        <p class="text-on-surface-variant max-w-2xl">Ajouter des clients, des chambres et des employes pour la demonstration.</p>
+        <p class="text-on-surface-variant max-w-2xl">
+          <% if (scopedAdminSession) { %>
+            Gestion limitee a <%= scopedAdminSession.hotel_name %>.
+          <% } else { %>
+            Ajouter des clients, des chambres et des employes pour la demonstration.
+          <% } %>
+        </p>
       </div>
 
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -84,6 +96,10 @@
             <h3 class="text-lg font-bold tracking-tight text-on-surface">Ajouter un client</h3>
           </div>
           <form action="/admin/add-client" method="POST" class="space-y-5">
+            <% if (scopedAdminSession) { %>
+              <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+              <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+            <% } %>
             <div>
               <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Nom complet</label>
               <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50" name="nom" placeholder="Nom complet" required type="text"/>
@@ -106,6 +122,10 @@
             <h3 class="text-lg font-bold tracking-tight text-on-surface">Ajouter une chambre</h3>
           </div>
           <form action="/admin/add-room" method="POST" class="space-y-5">
+            <% if (scopedAdminSession) { %>
+              <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+              <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+            <% } %>
             <div>
               <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Hotel</label>
               <select class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="hotel_id" required>
@@ -165,6 +185,7 @@
           </form>
         </div>
 
+        <% if (!scopedAdminSession) { %>
         <div class="bg-surface-container rounded-xl p-5 lg:p-6 border border-white/5">
           <div class="flex items-center gap-3 mb-5">
             <span class="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-lg">apartment</span>
@@ -202,6 +223,7 @@
             <button class="w-full signature-gradient text-on-primary font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all active:scale-[0.98]" type="submit">Enregistrer hotel</button>
           </form>
         </div>
+        <% } %>
 
         <div class="xl:col-span-2 bg-surface-container-low rounded-xl p-6 lg:p-7 ghost-border">
           <div class="flex items-center gap-4 mb-6">
@@ -215,6 +237,10 @@
           </div>
 
           <form action="/admin/add-employee" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <% if (scopedAdminSession) { %>
+              <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+              <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+            <% } %>
             <div>
               <label class="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mb-1.5 ml-1">Nom complet</label>
               <input class="w-full bg-surface-container-highest border-none rounded-lg p-3 text-on-surface focus:ring-1 focus:ring-primary" name="nom" required type="text"/>
@@ -246,6 +272,119 @@
               <button class="w-full signature-gradient text-on-primary font-bold py-3.5 px-6 rounded-lg hover:opacity-90 transition-all active:scale-[0.98]" type="submit">Enregistrer employe</button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <div class="mt-8 grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="bg-surface-container-low rounded-xl p-5 lg:p-6 border border-white/5">
+          <h3 class="text-lg font-bold tracking-tight text-on-surface mb-4">Modifier / supprimer clients</h3>
+          <div class="space-y-3">
+            <% if (!clientRows.length) { %>
+              <p class="text-sm text-on-surface-variant">Aucun client a afficher.</p>
+            <% } %>
+            <% clientRows.forEach(client => { %>
+              <div class="bg-surface-container rounded-lg p-4 space-y-3">
+                <form action="/admin/update-client/<%= client.client_id %>" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <% if (scopedAdminSession) { %>
+                    <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+                    <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+                  <% } %>
+                  <input class="bg-surface-container-highest border-none rounded-lg p-3 text-on-surface" name="nom" value="<%= client.full_name %>" required type="text"/>
+                  <input class="bg-surface-container-highest border-none rounded-lg p-3 text-on-surface" name="adresse" value="<%= client.address %>" required type="text"/>
+                  <button class="signature-gradient text-on-primary font-bold py-2 px-4 rounded-lg" type="submit">Mettre a jour</button>
+                </form>
+                <form action="/admin/delete-client/<%= client.client_id %>" method="POST">
+                  <% if (scopedAdminSession) { %>
+                    <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+                    <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+                  <% } %>
+                  <button class="text-red-300 text-xs font-bold uppercase tracking-widest" type="submit">Supprimer client #<%= client.client_id %></button>
+                </form>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+
+        <div class="bg-surface-container-low rounded-xl p-5 lg:p-6 border border-white/5">
+          <h3 class="text-lg font-bold tracking-tight text-on-surface mb-4">Modifier / supprimer employes</h3>
+          <div class="space-y-3">
+            <% if (!employeeRows.length) { %>
+              <p class="text-sm text-on-surface-variant">Aucun employe a afficher.</p>
+            <% } %>
+            <% employeeRows.forEach(employee => { %>
+              <div class="bg-surface-container rounded-lg p-4 space-y-3">
+                <form action="/admin/update-employee/<%= employee.employee_id %>" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <% if (scopedAdminSession) { %>
+                    <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+                    <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+                  <% } %>
+                  <input class="bg-surface-container-highest border-none rounded-lg p-3 text-on-surface" name="nom" value="<%= employee.full_name %>" required type="text"/>
+                  <select class="bg-surface-container-highest border-none rounded-lg p-3 text-on-surface" name="role">
+                    <% ['Manager', 'Receptionist', 'Housekeeping', 'Admin', 'Other'].forEach(role => { %>
+                      <option value="<%= role %>" <%= employee.role === role ? 'selected' : '' %>><%= role %></option>
+                    <% }) %>
+                  </select>
+                  <button class="signature-gradient text-on-primary font-bold py-2 px-4 rounded-lg" type="submit">Mettre a jour</button>
+                </form>
+                <form action="/admin/delete-employee/<%= employee.employee_id %>" method="POST">
+                  <% if (scopedAdminSession) { %>
+                    <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+                    <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+                  <% } %>
+                  <button class="text-red-300 text-xs font-bold uppercase tracking-widest" type="submit">Supprimer employe #<%= employee.employee_id %></button>
+                </form>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+
+        <div class="bg-surface-container-low rounded-xl p-5 lg:p-6 border border-white/5">
+          <h3 class="text-lg font-bold tracking-tight text-on-surface mb-4">Modifier hotels</h3>
+          <div class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+            <% hotels.slice(0, 10).forEach(hotel => { %>
+              <div class="bg-surface-container rounded-lg p-4 space-y-3">
+                <form action="/admin/update-hotel/<%= hotel.hotel_id %>" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <% if (scopedAdminSession) { %>
+                    <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+                    <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+                  <% } %>
+                  <input class="bg-surface-container-highest border-none rounded-lg p-3 text-on-surface" name="nom" value="<%= hotel.name %>" required type="text"/>
+                  <input class="bg-surface-container-highest border-none rounded-lg p-3 text-on-surface" name="categorie" value="<%= hotel.category || 1 %>" min="1" max="5" required type="number"/>
+                  <button class="signature-gradient text-on-primary font-bold py-2 px-4 rounded-lg" type="submit">Mettre a jour</button>
+                </form>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+
+        <div class="bg-surface-container-low rounded-xl p-5 lg:p-6 border border-white/5">
+          <h3 class="text-lg font-bold tracking-tight text-on-surface mb-4">Modifier / supprimer chambres</h3>
+          <div class="space-y-3">
+            <% if (!roomRows.length) { %>
+              <p class="text-sm text-on-surface-variant">Aucune chambre a afficher.</p>
+            <% } %>
+            <% roomRows.forEach(room => { %>
+              <div class="bg-surface-container rounded-lg p-4 space-y-3">
+                <p class="text-xs text-on-surface-variant">#<%= room.room_id %> - <%= room.hotel_name %> - Chambre <%= room.room_number %></p>
+                <form action="/admin/update-room/<%= room.room_id %>" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <% if (scopedAdminSession) { %>
+                    <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+                    <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+                  <% } %>
+                  <input class="bg-surface-container-highest border-none rounded-lg p-3 text-on-surface" name="prix" value="<%= room.price %>" min="0" step="0.01" required type="number"/>
+                  <input class="bg-surface-container-highest border-none rounded-lg p-3 text-on-surface" name="damage_status" value="<%= room.damage_status || 'None' %>" type="text"/>
+                  <button class="signature-gradient text-on-primary font-bold py-2 px-4 rounded-lg" type="submit">Mettre a jour</button>
+                </form>
+                <form action="/admin/delete-room/<%= room.room_id %>" method="POST">
+                  <% if (scopedAdminSession) { %>
+                    <input type="hidden" name="admin_employee_id" value="<%= scopedAdminSession.employee_id %>"/>
+                    <input type="hidden" name="admin_hotel_id" value="<%= scopedAdminSession.hotel_id %>"/>
+                  <% } %>
+                  <button class="text-red-300 text-xs font-bold uppercase tracking-widest" type="submit">Supprimer chambre #<%= room.room_id %></button>
+                </form>
+              </div>
+            <% }) %>
+          </div>
         </div>
       </div>
     </section>

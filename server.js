@@ -25,22 +25,22 @@ const CHAIN_OPTIONS = [
 ];
 
 function getFallbackEmployees() {
-    return CHAIN_OPTIONS.flatMap((chain) => ([
+    return getFallbackHotels().flatMap((hotel) => ([
         {
-            employee_id: chain.id * 100 + 1,
-            hotel_id: chain.id,
-            actual_hotel_id: null,
-            full_name: `Manager ${chain.name}`,
+            employee_id: hotel.hotel_id * 100 + 1,
+            hotel_id: hotel.hotel_id,
+            actual_hotel_id: hotel.hotel_id,
+            full_name: `Manager ${hotel.name}`,
             role: 'Manager',
-            ssn_sin: `${chain.id}00000001`
+            ssn_sin: `${hotel.hotel_id}00000001`
         },
         {
-            employee_id: chain.id * 100 + 2,
-            hotel_id: chain.id,
-            actual_hotel_id: null,
-            full_name: `Employee ${chain.name}`,
+            employee_id: hotel.hotel_id * 100 + 2,
+            hotel_id: hotel.hotel_id,
+            actual_hotel_id: hotel.hotel_id,
+            full_name: `Employee ${hotel.name}`,
             role: 'Receptionist',
-            ssn_sin: `${chain.id}00000002`
+            ssn_sin: `${hotel.hotel_id}00000002`
         }
     ]));
 }
@@ -123,13 +123,42 @@ function normalizeDateRange(dateDebut, dateFin) {
 // --- NAVIGATION ---
 app.get('/', (req, res) => res.render('recherche', { cities: CITY_OPTIONS, chains: CHAIN_OPTIONS }));
 
-async function getAdminFormData() {
+async function getAdminFormData(scopeHotelId = null) {
     try {
         const [chains] = await pool.query('SELECT chain_id AS id, name FROM HOTEL_CHAIN ORDER BY name');
-        const [hotels] = await pool.query('SELECT hotel_id, name FROM HOTEL ORDER BY name');
-        return { chains, hotels };
+        const hotelFilter = scopeHotelId ? 'WHERE h.hotel_id = ?' : '';
+        const hotelParams = scopeHotelId ? [scopeHotelId] : [];
+        const [hotels] = await pool.query(`SELECT h.hotel_id, h.name, h.category FROM HOTEL h ${hotelFilter} ORDER BY h.name`, hotelParams);
+        const [clients] = await pool.query(scopeHotelId ? `
+            SELECT DISTINCT c.client_id, c.full_name, c.address, c.ssn_sin
+            FROM CLIENT c
+            LEFT JOIN RESERVATION res ON res.client_id = c.client_id
+            LEFT JOIN RENTAL ren ON ren.client_id = c.client_id
+            LEFT JOIN ROOM rr ON rr.room_id = res.room_id
+            LEFT JOIN ROOM rental_room ON rental_room.room_id = ren.room_id
+            WHERE rr.hotel_id = ? OR rental_room.hotel_id = ?
+            ORDER BY c.client_id DESC
+            LIMIT 10
+        ` : 'SELECT client_id, full_name, address, ssn_sin FROM CLIENT ORDER BY client_id DESC LIMIT 10', scopeHotelId ? [scopeHotelId, scopeHotelId] : []);
+        const [employees] = await pool.query(`
+            SELECT e.employee_id, e.full_name, e.role, e.ssn_sin, h.name AS hotel_name
+            FROM EMPLOYEE e
+            JOIN HOTEL h ON e.hotel_id = h.hotel_id
+            ${hotelFilter}
+            ORDER BY e.employee_id DESC
+            LIMIT 10
+        `, hotelParams);
+        const [rooms] = await pool.query(`
+            SELECT r.room_id, r.room_number, r.price, r.damage_status, h.name AS hotel_name
+            FROM ROOM r
+            JOIN HOTEL h ON r.hotel_id = h.hotel_id
+            ${hotelFilter}
+            ORDER BY r.room_id DESC
+            LIMIT 10
+        `, hotelParams);
+        return { chains, hotels, clients, employees, rooms };
     } catch (err) {
-        return { chains: CHAIN_OPTIONS, hotels: getFallbackHotels() };
+        return { chains: CHAIN_OPTIONS, hotels: getFallbackHotels(), clients: [], employees: [], rooms: [] };
     }
 }
 
@@ -151,78 +180,69 @@ async function getEmployeeAccessData() {
     try {
         await pool.query(`
             INSERT INTO EMPLOYEE (hotel_id, full_name, address, ssn_sin, role)
-            SELECT MIN(h.hotel_id), CONCAT('Manager ', hc.name), 'Address St', CONCAT('1', LPAD(hc.chain_id, 8, '0')), 'Manager'
-            FROM HOTEL_CHAIN hc
-            JOIN HOTEL h ON h.chain_id = hc.chain_id
+            SELECT h.hotel_id, CONCAT('Manager ', h.hotel_id), 'Address St', CONCAT('1', LPAD(h.hotel_id, 8, '0')), 'Manager'
+            FROM HOTEL h
             WHERE NOT EXISTS (
                 SELECT 1
                 FROM EMPLOYEE existing_employee
-                JOIN HOTEL existing_hotel ON existing_employee.hotel_id = existing_hotel.hotel_id
-                WHERE existing_hotel.chain_id = hc.chain_id
+                WHERE existing_employee.hotel_id = h.hotel_id
                   AND existing_employee.role = 'Manager'
             )
-            GROUP BY hc.chain_id, hc.name
         `);
         await pool.query(`
             INSERT INTO EMPLOYEE (hotel_id, full_name, address, ssn_sin, role)
-            SELECT MIN(h.hotel_id), CONCAT('Employee ', hc.name), 'Address St', CONCAT('2', LPAD(hc.chain_id, 8, '0')), 'Receptionist'
-            FROM HOTEL_CHAIN hc
-            JOIN HOTEL h ON h.chain_id = hc.chain_id
+            SELECT h.hotel_id, CONCAT('Employee ', h.hotel_id), 'Address St', CONCAT('2', LPAD(h.hotel_id, 8, '0')), 'Receptionist'
+            FROM HOTEL h
             WHERE NOT EXISTS (
                 SELECT 1
                 FROM EMPLOYEE existing_employee
-                JOIN HOTEL existing_hotel ON existing_employee.hotel_id = existing_hotel.hotel_id
-                WHERE existing_hotel.chain_id = hc.chain_id
+                WHERE existing_employee.hotel_id = h.hotel_id
                   AND existing_employee.role <> 'Manager'
             )
-            GROUP BY hc.chain_id, hc.name
         `);
         await pool.query(`
             UPDATE HOTEL h
-            JOIN (
-                SELECT MIN(hotel_id) AS hotel_id
-                FROM HOTEL
-                GROUP BY chain_id
-            ) representative_hotels ON representative_hotels.hotel_id = h.hotel_id
             JOIN EMPLOYEE e ON e.hotel_id = h.hotel_id AND e.role = 'Manager'
             SET h.manager_employee_id = e.employee_id
             WHERE h.manager_employee_id IS NULL
         `);
 
         const [employees] = await pool.query(`
-            SELECT e.employee_id, hc.chain_id AS hotel_id, e.hotel_id AS actual_hotel_id, e.full_name, e.role, e.ssn_sin
+            SELECT e.employee_id, h.hotel_id, e.hotel_id AS actual_hotel_id, e.full_name, e.role, e.ssn_sin
             FROM EMPLOYEE e
             JOIN HOTEL h ON e.hotel_id = h.hotel_id
-            JOIN HOTEL_CHAIN hc ON h.chain_id = hc.chain_id
             WHERE e.role <> 'Manager'
                OR e.employee_id = (
                     SELECT MIN(e2.employee_id)
                     FROM EMPLOYEE e2
-                    JOIN HOTEL h2 ON e2.hotel_id = h2.hotel_id
-                    WHERE h2.chain_id = hc.chain_id
+                    WHERE e2.hotel_id = h.hotel_id
                       AND e2.role = 'Manager'
                )
-            ORDER BY hc.chain_id, e.role = 'Manager' DESC, e.full_name
+            ORDER BY h.name, e.role = 'Manager' DESC, e.full_name
         `);
         return {
-            hotels: CHAIN_OPTIONS.map(chain => ({ hotel_id: chain.id, name: chain.name })),
+            hotels: await getEmployeeHotelOptions(),
             employees
         };
     } catch (err) {
         return {
-            hotels: CHAIN_OPTIONS.map(chain => ({ hotel_id: chain.id, name: chain.name })),
+            hotels: getFallbackHotels(),
             employees: getFallbackEmployees()
         };
     }
 }
 
+async function getEmployeeHotelOptions() {
+    const [hotels] = await pool.query('SELECT hotel_id, name FROM HOTEL ORDER BY name');
+    return hotels;
+}
+
 async function getEmployeeSession(employeeId, hotelId) {
     const [employees] = await pool.query(
-        `SELECT e.employee_id, hc.chain_id AS hotel_id, e.hotel_id AS actual_hotel_id, e.full_name, e.role, hc.name AS hotel_name
+        `SELECT e.employee_id, h.hotel_id, e.hotel_id AS actual_hotel_id, e.full_name, e.role, h.name AS hotel_name
          FROM EMPLOYEE e
          JOIN HOTEL h ON e.hotel_id = h.hotel_id
-         JOIN HOTEL_CHAIN hc ON h.chain_id = hc.chain_id
-         WHERE e.employee_id = ? AND hc.chain_id = ?`,
+         WHERE e.employee_id = ? AND h.hotel_id = ?`,
         [employeeId, hotelId]
     );
 
@@ -231,6 +251,7 @@ async function getEmployeeSession(employeeId, hotelId) {
 
 app.get('/admin', async(req, res) => {
     const { employee_id, hotel_id } = req.query;
+    let adminSession = null;
 
     if (employee_id && hotel_id) {
         try {
@@ -238,14 +259,31 @@ app.get('/admin', async(req, res) => {
             if (!session || session.role !== 'Manager') {
                 return res.redirect('/employe');
             }
+            adminSession = session;
         } catch (err) {
             return res.redirect('/employe');
         }
     }
 
-    const { chains, hotels } = await getAdminFormData();
-    res.render('admin', { chains, hotels, cities: CITY_OPTIONS, returnToEmployee: Boolean(employee_id && hotel_id) });
+    const { chains, hotels, clients, employees, rooms } = await getAdminFormData(adminSession ? adminSession.actual_hotel_id : null);
+    res.render('admin', {
+        chains,
+        hotels,
+        clients,
+        employees,
+        rooms,
+        cities: CITY_OPTIONS,
+        returnToEmployee: Boolean(adminSession),
+        adminSession
+    });
 });
+
+function getAdminRedirect(req) {
+    const data = { ...req.query, ...req.body };
+    const employee_id = data.admin_employee_id || data.employee_id;
+    const hotel_id = data.admin_hotel_id || data.hotel_id;
+    return employee_id && hotel_id ? `/admin?employee_id=${employee_id}&hotel_id=${hotel_id}` : '/admin';
+}
 
 async function getOrCreateClient({ nom, adresse, nas }) {
     const [existingClient] = await pool.query(
@@ -422,7 +460,12 @@ app.get('/employe/console', async(req, res) => {
             JOIN ROOM r ON res.room_id = r.room_id
             JOIN HOTEL h ON r.hotel_id = h.hotel_id
             WHERE res.status IN ('Pending', 'Confirmed')
-              AND h.chain_id = ?
+              AND h.hotel_id = ?
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM RENTAL ren
+                    WHERE ren.reservation_id = res.reservation_id
+              )
             ORDER BY res.start_date, res.reservation_id`,
             [hotel_id]
         );
@@ -430,13 +473,31 @@ app.get('/employe/console', async(req, res) => {
             SELECT r.room_id, r.room_number, h.name AS hotel_name
             FROM ROOM r
             JOIN HOTEL h ON r.hotel_id = h.hotel_id
-            WHERE h.chain_id = ?
+            WHERE h.hotel_id = ?
             ORDER BY r.room_number
+        `, [hotel_id]);
+        const [rentals] = await pool.query(`
+            SELECT ren.rental_id AS id,
+                   COALESCE(c.full_name, 'Client archive') AS client,
+                   COALESCE(c.ssn_sin, 'N/A') AS nas,
+                   ren.room_id,
+                   ren.reservation_id,
+                   DATE_FORMAT(ren.check_in_date, '%Y-%m-%d') AS check_in_date,
+                   DATE_FORMAT(ren.check_out_date, '%Y-%m-%d') AS check_out_date,
+                   ren.status
+            FROM RENTAL ren
+            LEFT JOIN CLIENT c ON ren.client_id = c.client_id
+            JOIN ROOM r ON ren.room_id = r.room_id
+            JOIN HOTEL h ON r.hotel_id = h.hotel_id
+            WHERE h.hotel_id = ?
+            ORDER BY ren.check_in_date DESC, ren.rental_id DESC
+            LIMIT 20
         `, [hotel_id]);
 
         res.render('employe', {
             mode: 'console',
             reservations: reserves,
+            rentals,
             rooms,
             session,
             hotels: [],
@@ -447,7 +508,7 @@ app.get('/employe/console', async(req, res) => {
     }
 });
 
-// Conversion: Reservation -> Rental (Check-in)
+// Conversion: Reservation -> Rental
 app.post('/checkin/:id', async(req, res) => {
     const { employee_id, hotel_id } = req.body;
     try {
@@ -461,8 +522,10 @@ app.post('/checkin/:id', async(req, res) => {
             FROM RESERVATION res
             JOIN ROOM r ON res.room_id = r.room_id
             JOIN HOTEL h ON r.hotel_id = h.hotel_id
+            LEFT JOIN RENTAL existing_rental ON existing_rental.reservation_id = res.reservation_id
             WHERE res.reservation_id = ?
-              AND h.chain_id = ?`,
+              AND h.hotel_id = ?
+              AND existing_rental.rental_id IS NULL`,
             [req.params.id, hotel_id]
         );
         if (reservation.length > 0) {
@@ -474,37 +537,59 @@ app.post('/checkin/:id', async(req, res) => {
             await pool.query('UPDATE RESERVATION SET status = "Confirmed" WHERE reservation_id = ?', [req.params.id]);
         }
         res.redirect(`/employe/console?employee_id=${employee_id}&hotel_id=${hotel_id}`);
-    } catch (err) { res.status(500).send("Check-in Error"); }
+    } catch (err) { res.status(500).send("Rental Conversion Error"); }
 });
 
-// Direct Rental (Location Directe)
-app.post('/louer-direct', async(req, res) => {
-    const { nas, room_id, employee_id, hotel_id } = req.body;
+app.post('/reservation/delete/:id', async(req, res) => {
+    const { employee_id, hotel_id } = req.body;
     try {
         const session = await getEmployeeSession(employee_id, hotel_id);
         if (!session) {
             return res.status(403).send('Employe non autorise');
         }
 
-        const [client] = await pool.query('SELECT client_id FROM CLIENT WHERE ssn_sin = ?', [nas]);
-        if (client.length > 0) {
-            const [rooms] = await pool.query(
-                `SELECT r.room_id
-                 FROM ROOM r
-                 JOIN HOTEL h ON r.hotel_id = h.hotel_id
-                 WHERE r.room_id = ? AND h.chain_id = ?`,
-                [room_id, hotel_id]
-            );
-            if (!rooms.length) {
-                return res.status(403).send('Chambre non autorisee');
-            }
+        await pool.query(`
+            DELETE res
+            FROM RESERVATION res
+            JOIN ROOM r ON res.room_id = r.room_id
+            JOIN HOTEL h ON r.hotel_id = h.hotel_id
+            LEFT JOIN RENTAL ren ON ren.reservation_id = res.reservation_id
+            WHERE res.reservation_id = ?
+              AND h.hotel_id = ?
+              AND ren.rental_id IS NULL`,
+            [req.params.id, hotel_id]
+        );
 
-            await pool.query(
-                'INSERT INTO RENTAL (client_id, room_id, employee_id, check_in_date, check_out_date, status) VALUES (?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 2 DAY), "Active")',
-                [client[0].client_id, room_id, employee_id]
-            );
-            res.redirect(`/employe/console?employee_id=${employee_id}&hotel_id=${hotel_id}`);
-        } else { res.status(404).send("Client non trouvé"); }
+        res.redirect(`/employe/console?employee_id=${employee_id}&hotel_id=${hotel_id}`);
+    } catch (err) { res.status(500).send("Reservation Delete Error"); }
+});
+
+// Direct Rental (Location Directe)
+app.post('/louer-direct', async(req, res) => {
+    const { nom, adresse, nas, room_id, employee_id, hotel_id } = req.body;
+    try {
+        const session = await getEmployeeSession(employee_id, hotel_id);
+        if (!session) {
+            return res.status(403).send('Employe non autorise');
+        }
+
+        const clientId = await getOrCreateClient({ nom, adresse, nas });
+        const [rooms] = await pool.query(
+            `SELECT r.room_id
+             FROM ROOM r
+             JOIN HOTEL h ON r.hotel_id = h.hotel_id
+             WHERE r.room_id = ? AND h.hotel_id = ?`,
+            [room_id, hotel_id]
+        );
+        if (!rooms.length) {
+            return res.status(403).send('Chambre non autorisee');
+        }
+
+        await pool.query(
+            'INSERT INTO RENTAL (client_id, room_id, employee_id, check_in_date, check_out_date, status) VALUES (?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 2 DAY), "Active")',
+            [clientId, room_id, employee_id]
+        );
+        res.redirect(`/employe/console?employee_id=${employee_id}&hotel_id=${hotel_id}`);
     } catch (err) { res.status(500).send("Rental Error"); }
 });
 
@@ -513,7 +598,7 @@ app.post('/admin/add-client', async(req, res) => {
     const { nom, nas, adresse } = req.body;
     try {
         await pool.query('INSERT INTO CLIENT (full_name, address, ssn_sin, registration_date) VALUES (?, ?, ?, CURDATE())', [nom, adresse, nas]);
-        res.redirect('/admin');
+        res.redirect(getAdminRedirect(req));
     } catch (err) { res.status(500).send("CRUD Error"); }
 });
 
@@ -521,7 +606,7 @@ app.post('/admin/add-employee', async(req, res) => {
     const { nom, nas, role, hotel_id } = req.body;
     try {
         await pool.query('INSERT INTO EMPLOYEE (hotel_id, full_name, ssn_sin, role, address) VALUES (?, ?, ?, ?, "Address TBD")', [hotel_id, nom, nas, role]);
-        res.redirect('/admin');
+        res.redirect(getAdminRedirect(req));
     } catch (err) { res.status(500).send("CRUD Error"); }
 });
 
@@ -534,7 +619,7 @@ app.post('/admin/add-hotel', async(req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
             [chain_id, nom, categorie, adresse, ville, province_state, country, postal_code, email, phone]
         );
-        res.redirect('/admin');
+        res.redirect(getAdminRedirect(req));
     } catch (err) { res.status(500).send("CRUD Error"); }
 });
 
@@ -547,8 +632,61 @@ app.post('/admin/add-room', async(req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [hotel_id, room_number, prix, commodites || null, capacite, vue, Number(extendable_bed), damage_status || 'None', area]
         );
-        res.redirect('/admin');
+        res.redirect(getAdminRedirect(req));
     } catch (err) { res.status(500).send("CRUD Error"); }
+});
+
+app.post('/admin/update-client/:id', async(req, res) => {
+    const { nom, adresse } = req.body;
+    try {
+        await pool.query('UPDATE CLIENT SET full_name = ?, address = ? WHERE client_id = ?', [nom, adresse, req.params.id]);
+        res.redirect(getAdminRedirect(req));
+    } catch (err) { res.status(500).send("CRUD Error"); }
+});
+
+app.post('/admin/delete-client/:id', async(req, res) => {
+    try {
+        await pool.query('DELETE FROM CLIENT WHERE client_id = ?', [req.params.id]);
+        res.redirect(getAdminRedirect(req));
+    } catch (err) { res.status(500).send("Delete blocked because this client has reservations or rentals."); }
+});
+
+app.post('/admin/update-employee/:id', async(req, res) => {
+    const { nom, role } = req.body;
+    try {
+        await pool.query('UPDATE EMPLOYEE SET full_name = ?, role = ? WHERE employee_id = ?', [nom, role, req.params.id]);
+        res.redirect(getAdminRedirect(req));
+    } catch (err) { res.status(500).send("CRUD Error"); }
+});
+
+app.post('/admin/delete-employee/:id', async(req, res) => {
+    try {
+        await pool.query('DELETE FROM EMPLOYEE WHERE employee_id = ?', [req.params.id]);
+        res.redirect(getAdminRedirect(req));
+    } catch (err) { res.status(500).send("Delete blocked because this employee is referenced by a hotel or rental."); }
+});
+
+app.post('/admin/update-hotel/:id', async(req, res) => {
+    const { nom, categorie } = req.body;
+    try {
+        await pool.query('UPDATE HOTEL SET name = ?, category = ? WHERE hotel_id = ?', [nom, categorie, req.params.id]);
+        res.redirect(getAdminRedirect(req));
+    } catch (err) { res.status(500).send("CRUD Error"); }
+});
+
+app.post('/admin/update-room/:id', async(req, res) => {
+    const { prix, damage_status } = req.body;
+    try {
+        await pool.query('UPDATE ROOM SET price = ?, damage_status = ? WHERE room_id = ?', [prix, damage_status || 'None', req.params.id]);
+        res.redirect(getAdminRedirect(req));
+    } catch (err) { res.status(500).send("CRUD Error"); }
+});
+
+app.post('/admin/delete-room/:id', async(req, res) => {
+    try {
+        await pool.query('DELETE FROM ROOM WHERE room_id = ?', [req.params.id]);
+        res.redirect(getAdminRedirect(req));
+    } catch (err) { res.status(500).send("Delete blocked because this room has reservations or rentals."); }
 });
 
 // --- STATS (Req #9) ---

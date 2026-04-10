@@ -34,12 +34,10 @@ SELECT
 FROM HOTEL h
 CROSS JOIN (SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) AS nums;
 
--- Managers: one manager per hotel chain for the employee access demo
+-- Managers: every hotel must have one manager
 INSERT INTO EMPLOYEE (hotel_id, full_name, address, ssn_sin, role)
-SELECT MIN(h.hotel_id), CONCAT('Manager ', hc.name), 'Address St', CONCAT('1', LPAD(hc.chain_id, 8, '0')), 'Manager'
-FROM HOTEL_CHAIN hc
-JOIN HOTEL h ON h.chain_id = hc.chain_id
-GROUP BY hc.chain_id, hc.name;
+SELECT h.hotel_id, CONCAT('Manager ', h.hotel_id), 'Address St', CONCAT('1', LPAD(h.hotel_id, 8, '0')), 'Manager'
+FROM HOTEL h;
 
 -- Test non-manager employee for each hotel chain
 INSERT INTO EMPLOYEE (hotel_id, full_name, address, ssn_sin, role)
@@ -50,13 +48,16 @@ GROUP BY hc.chain_id, hc.name;
 
 -- Link Managers back to Hotels
 UPDATE HOTEL h
-JOIN (
-    SELECT MIN(hotel_id) AS hotel_id
-    FROM HOTEL
-    GROUP BY chain_id
-) representative_hotels ON representative_hotels.hotel_id = h.hotel_id
 JOIN EMPLOYEE e ON e.hotel_id = h.hotel_id AND e.role = 'Manager'
 SET h.manager_employee_id = e.employee_id;
+
+-- Room count is seeded before the trigger exists, so initialize it here.
+UPDATE HOTEL h
+SET num_rooms = (
+    SELECT COUNT(*)
+    FROM ROOM r
+    WHERE r.hotel_id = h.hotel_id
+);
 
 -- Clients [cite: 30]
 INSERT INTO CLIENT (full_name, address, ssn_sin, registration_date) VALUES

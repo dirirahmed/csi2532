@@ -61,7 +61,7 @@
   </aside>
 
   <main class="flex-grow flex flex-col min-w-0 overflow-y-auto pb-8">
-    <header class="bg-[#121413]/80 backdrop-blur-lg flex items-center w-full px-8 h-16 sticky top-0 z-50 border-b border-white/5">
+    <header class="bg-[#121413]/80 backdrop-blur-lg flex items-center justify-between w-full px-8 h-16 sticky top-0 z-50 border-b border-white/5">
       <div class="flex items-center gap-5">
         <% if (showEmployeeReturn) { %>
           <a class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors" href="/employe">
@@ -75,6 +75,10 @@
           <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Admin Console</span>
         </div>
       </div>
+      <a class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest border border-white/10 text-primary rounded-lg text-xs font-bold uppercase tracking-widest hover:border-primary/50 hover:bg-surface-container transition-all" href="/stats">
+        <span class="material-symbols-outlined text-sm">analytics</span>
+        <span>Stats</span>
+      </a>
     </header>
 
     <section class="p-6 lg:p-8 max-w-6xl mx-auto w-full">
